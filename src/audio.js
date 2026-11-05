@@ -54,6 +54,24 @@ export function createAudio() {
     src.start(t);
   }
 
+  // Tiếng cà chua bẹp: tiếng ồn băng thông hẹp, ướt và ngắn.
+  function splat() {
+    if (!ensure()) return;
+    const t = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuffer(0.25);
+    const f = ctx.createBiquadFilter();
+    f.type = 'bandpass';
+    f.Q.value = 1.2;
+    f.frequency.setValueAtTime(900, t);
+    f.frequency.exponentialRampToValueAtTime(250, t + 0.2);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.7, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    src.connect(f).connect(g).connect(master);
+    src.start(t);
+  }
+
   function cheer() {
     if (!ensure()) return;
     const t = ctx.currentTime;
@@ -92,6 +110,7 @@ export function createAudio() {
     unlock: ensure,
     punch,
     cheer,
+    splat,
     blip,
     get muted() {
       return muted;

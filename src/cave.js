@@ -4,6 +4,7 @@ import { CSS3DObject, CSS3DRenderer } from 'three/addons/renderers/CSS3DRenderer
 import { BRAND, CLUB_ORDER, CLUBS, FIXTURE_TEAMS, FAN_SONGS, LEGENDS, POLL, POSTER_SLOTS, POSTER_SWAP_MS, SCOREBOARD } from './config.js';
 import { createAvatar } from './avatar.js';
 import { LEGEND_PHOTOS } from './legendPhotos.js';
+import { createBanners, latestOutcomes } from './banners.js';
 import { createAudio } from './audio.js';
 import { connect } from './net.js';
 import { createCampfire, createTorch, rng, rockGeometry, rockMaterial, textCanvas } from './scenery.js';
@@ -142,7 +143,15 @@ function buildCave(scene) {
     const count = Math.floor(slots / clubs.length) + (i < slots % clubs.length ? 1 : 0);
     return LEGENDS.filter((l) => l.club === c).slice(0, count);
   });
-  const posters = initial.map((legend, i) => createPoster(scene, legend, start + (span * (i + 0.5)) / initial.length, wallR));
+  // Chừa khoảng vách sau lưng cho Góc cà chua (src/banners.js, hướng +z).
+  const SHAME_GAP = 0.42;
+  const gapFrom = Math.PI / 2 - SHAME_GAP - start;
+  const usable = span - SHAME_GAP * 2;
+  const angleAt = (i) => {
+    const d = (usable * (i + 0.5)) / initial.length;
+    return start + (d < gapFrom ? d : d + SHAME_GAP * 2);
+  };
+  const posters = initial.map((legend, i) => createPoster(scene, legend, angleAt(i), wallR));
   const gallery = createGallery(posters);
   // Chỉ bản dev: xem cầu thủ đang treo để kiểm việc thay phiên.
   if (import.meta.env.DEV) window.__hangPosters = () => posters.map((p) => p.legend.name);
@@ -989,6 +998,7 @@ function buildHud(app, { onLeave }) {
   const hint = el('div', { className: 'hint-bottom' }, 'Bấm vào cảnh để xoay bằng chuột');
   const toast = el('div', { className: 'toast' });
   const punchHint = el('div', { className: 'punch-btn' }, '👊 Nhấn F để đấm');
+  const tomatoBtn = el('button', { className: 'btn-tomato', type: 'button', title: 'Ném cà chua (T)' }, el('span', { className: 'ico' }, '🍅'), el('span', { className: 'lbl' }, ' Ném cà chua'), kbd('T'));
 
   // Điều khiển cảm ứng: cần gạt bên trái, nút đấm bên phải.
   const knob = el('div', { className: 'joy-knob' });
@@ -996,7 +1006,7 @@ function buildHud(app, { onLeave }) {
   const punchTouch = el('button', { className: 'btn-punch', type: 'button', 'aria-label': 'Đấm' }, '👊');
 
   const isTouch = matchMedia('(pointer: coarse)').matches;
-  const hud = el('div', { className: `hud${isTouch ? ' touch' : ''}` }, top, roomInfo, chat, poll, celebrate, keysBtn, hint, toast, punchHint, joystick, punchTouch, ghostBanner);
+  const hud = el('div', { className: `hud${isTouch ? ' touch' : ''}` }, top, roomInfo, chat, poll, celebrate, keysBtn, hint, toast, punchHint, joystick, punchTouch, ghostBanner, tomatoBtn);
   app.append(hud);
   // Điện thoại (kể cả xoay ngang) và màn hẹp: gọn tối đa để không che cảnh 3D.
   const compact = isTouch || matchMedia('(max-width: 640px)').matches;
@@ -1087,6 +1097,7 @@ function buildHud(app, { onLeave }) {
       [['Chuột'], 'Xoay góc nhìn (bấm vào cảnh để khoá chuột, Esc để thả)'],
       [['F', 'Click'], 'Đấm người trong vòng đỏ trước mặt'],
       [['G'], 'Ăn mừng'],
+      [['T'], 'Ném cà chua vào cờ đội vừa thua (ở Góc cà chua)'],
       [['Enter'], 'Chat'],
       [['1', '2', '3'], 'Bình chọn trận đang xem'],
       [['Q', 'E'], 'Chuyển sang trận trước / sau'],
@@ -1103,7 +1114,7 @@ function buildHud(app, { onLeave }) {
   keysBtn.addEventListener('click', toggleHelp);
 
   return {
-    hud, input, log, volume, muteBtn, videoBtn, musicBtn, musicNextBtn, celebrate, punchHint, punchTouch, joy, isTouch,
+    hud, input, log, volume, muteBtn, videoBtn, musicBtn, musicNextBtn, celebrate, tomatoBtn, punchHint, punchTouch, joy, isTouch,
     get pollBtns() {
       return pollBtns;
     },
@@ -1162,6 +1173,11 @@ export function mountCave(app, { profile, onLeave }) {
     },
   });
   const resultsBoard = buildResultsBoard(scene);
+  // Cờ chiến thắng (đội vừa thắng) và Góc cà chua (đội vừa thua), dựa trên kết quả gần nhất.
+  const banners = createBanners(scene, {
+    ceilingAt: (r) => Math.sqrt(Math.max(0, 1 - (r / DOME_R) ** 2)) * DOME_R * DOME_SY,
+    fontsReady: canvasFontsReady,
+  });
   const getMatches = (url) =>
     fetch(url)
       .then((r) => r.json())
@@ -1169,7 +1185,10 @@ export function mountCave(app, { profile, onLeave }) {
       .catch(() => []);
   async function refreshFixtures() {
     getMatches('/api/fixtures').then(screen.setFixtures);
-    getMatches('/api/results').then(resultsBoard.setResults);
+    getMatches('/api/results').then((matches) => {
+      resultsBoard.setResults(matches);
+      banners.setOutcomes(latestOutcomes(matches));
+    });
   }
   refreshFixtures();
   const fixtureTimer = setInterval(refreshFixtures, 30 * 60 * 1000);
@@ -1358,6 +1377,7 @@ export function mountCave(app, { profile, onLeave }) {
       msg.players.forEach(addOther);
       hud.log.replaceChildren();
       msg.chat.forEach(hud.addChat);
+      banners.setTomatoes(msg.tomatoes ?? {});
       applyPolls(msg.polls ?? []);
       updateCount();
       loading.remove();
@@ -1409,6 +1429,12 @@ export function mountCave(app, { profile, onLeave }) {
     revive(msg) {
       setHealth(msg.id, msg.hp, 0);
       if (msg.id === myId) hud.showToast('✨ Bạn đã hồi sinh!');
+    },
+    tomato(msg) {
+      const from = msg.by === myId ? me.pos : avatarOf(msg.by)?.root.position;
+      if (!from) return;
+      avatarOf(msg.by)?.punch(); // dùng lại động tác vung tay
+      banners.throwTomato(from, msg.club, msg.count, () => audio.splat());
     },
     celebrate(msg) {
       const av = avatarOf(msg.id);
@@ -1567,6 +1593,22 @@ export function mountCave(app, { profile, onLeave }) {
     if (!me.avatar.celebrating) net.send({ t: 'celebrate' });
   }
   hud.celebrate.addEventListener('click', doCelebrate);
+
+  // Ném cà chua vào cờ đội vừa thua mà mình đang quay mặt về (theo hướng máy quay).
+  function throwTomato() {
+    if (!banners.hasLosers) {
+      hud.showToast('Chưa có đội nào vừa thua để ném 😎');
+      return;
+    }
+    const forward = { x: -Math.sin(camYaw), z: -Math.cos(camYaw) };
+    const club = banners.pickTarget(me.pos, forward);
+    if (!club) {
+      hud.showToast('🍅 Quay về Góc cà chua (vách sau chỗ xuất hiện) rồi ném');
+      return;
+    }
+    net.send({ t: 'tomato', club });
+  }
+  hud.tomatoBtn.addEventListener('click', throwTomato);
   hud.punchTouch.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     audio.unlock();
@@ -1587,6 +1629,7 @@ export function mountCave(app, { profile, onLeave }) {
     keys.add(e.code);
     if (k === 'f') doPunch();
     else if (k === 'g') doCelebrate();
+    else if (k === 't') throwTomato();
     else if (k === 'h') hud.toggleHelp();
     else if (k === 'm') toggleMute();
     else if (k === 'v') toggleVideo();
@@ -1754,6 +1797,7 @@ export function mountCave(app, { profile, onLeave }) {
     fire.update(dt);
     torches.forEach((tc) => tc.update(t));
     gallery.update(dt);
+    banners.update(dt);
     confetti.update(dt);
 
     renderer.render(scene, camera);
@@ -1765,6 +1809,7 @@ export function mountCave(app, { profile, onLeave }) {
   return () => {
     cancelAnimationFrame(raf);
     clearInterval(fixtureTimer);
+    banners.dispose();
     screen.dispose();
     music.dispose();
     removeEventListener('pointerdown', onFirstGesture, true);

@@ -14,6 +14,8 @@ const PUNCH_RANGE = 2.4;
 const PUNCH_COOLDOWN_MS = 700;
 const CHAT_COOLDOWN_MS = 800;
 const CHAT_HISTORY = 30;
+const TOMATO_COOLDOWN_MS = 350;
+const tomatoes = {}; // club -> số quả cà chua đã ném vào cờ đội đó (mất khi server khởi động lại)
 const MAX_HP = 5;
 const GHOST_MS = 30000; // làm ma 30 giây rồi hồi sinh đầy máu
 
@@ -272,6 +274,7 @@ wss.on('connection', (ws) => {
         players: [...players.values()].map(publicInfo),
         chat: chatLog,
         polls: pollList(me.id),
+        tomatoes,
       });
       refreshPolls().catch(() => {});
       broadcast({ t: 'join', p: publicInfo(me) }, me.id);
@@ -315,6 +318,14 @@ wss.on('connection', (ws) => {
         broadcast({ t: 'punch', by: me.id, target: target.id, hp: target.hp, ghostLeft: ghostLeft(target) });
         pushChat({ sys: true, text: `${me.name} đã 👊 ${target.name}` });
         if (target.ghostUntil) pushChat({ sys: true, text: `👻 ${target.name} đã thành ma` });
+        break;
+      }
+      case 'tomato': {
+        const club = String(msg.club);
+        if (!Object.hasOwn(CLUBS, club) || now - (me.lastTomato ?? 0) < TOMATO_COOLDOWN_MS) return;
+        me.lastTomato = now;
+        tomatoes[club] = (tomatoes[club] ?? 0) + 1;
+        broadcast({ t: 'tomato', by: me.id, club, count: tomatoes[club] });
         break;
       }
       case 'celebrate':

@@ -101,13 +101,13 @@ export const FAN_SONGS = [
 
 // Lịch thi đấu sắp tới trên bảng lớn trong hang. Lấy từ API công khai (không chính thức) của ESPN, mã đội theo ESPN.
 export const FIXTURE_TEAMS = [
-  { espnId: 364, name: 'Liverpool' },
-  { espnId: 382, name: 'Man City' },
-  { espnId: 360, name: 'Man Utd' },
-  { espnId: 363, name: 'Chelsea' },
-  { espnId: 359, name: 'Arsenal' },
-  { espnId: 83, name: 'Barcelona' },
-  { espnId: 86, name: 'Real Madrid' },
+  { espnId: 364, name: 'Liverpool', club: 'liverpool' },
+  { espnId: 382, name: 'Man City', club: 'mancity' },
+  { espnId: 360, name: 'Man Utd', club: 'manutd' },
+  { espnId: 363, name: 'Chelsea', club: 'chelsea' },
+  { espnId: 359, name: 'Arsenal', club: 'arsenal' },
+  { espnId: 83, name: 'Barcelona', club: 'barcelona' },
+  { espnId: 86, name: 'Real Madrid', club: 'realmadrid' },
 ];
 
 // CLB: màu tranh chân dung (colors/accent) và áo đấu nhân vật (kit).
