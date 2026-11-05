@@ -97,17 +97,16 @@ export function createAvatar(number) {
 
   const anim = { walk: 0, punch: 0, celebrate: 0, hit: 0, ghost: false, t: 0 };
 
-  // Ma: mọi phần (trừ vòng dưới chân) mờ đi, không đổ bóng, bay lơ lửng.
+  // Ma: ẩn nhân vật, thay bằng con ma trùm khăn trắng phát sáng, bay lơ lửng.
+  const normalParts = root.children.filter((c) => c !== ring);
+  const ghostBody = createGhostBody();
+  ghostBody.visible = false;
+  root.add(ghostBody);
+
   function setGhost(on) {
     anim.ghost = on;
-    root.traverse((o) => {
-      if (!o.isMesh || o === ring) return;
-      o.material.transparent = on;
-      o.material.opacity = on ? 0.32 : 1;
-      o.material.depthWrite = !on;
-      o.material.needsUpdate = true; // đổi transparent phải biên dịch lại shader
-      o.castShadow = !on;
-    });
+    for (const p of normalParts) p.visible = !on;
+    ghostBody.visible = on;
   }
 
   function update(dt, moving) {
@@ -133,6 +132,10 @@ export function createAvatar(number) {
       arms[1].rotation.z = 0;
       anim.t += dt;
       root.position.y = anim.ghost ? 0.35 + Math.sin(anim.t * 2.5) * 0.12 : 0;
+    }
+    if (anim.ghost) {
+      ghostBody.rotation.z = Math.sin(anim.t * 1.7) * 0.08;
+      ghostBody.userData.skirt.rotation.y += dt * 1.2;
     }
     if (anim.hit > 0) {
       anim.hit = Math.max(0, anim.hit - dt);
@@ -166,6 +169,69 @@ export function createAvatar(number) {
       });
     },
   };
+}
+
+/** Con ma trùm khăn: thân tròn đầu, vạt dưới lượn sóng, mắt và miệng chữ O. Mặt quay về +z. */
+function createGhostBody() {
+  const group = new THREE.Group();
+  const sheetMat = new THREE.MeshStandardMaterial({
+    color: '#f4f7ff',
+    emissive: '#8fb2ff',
+    emissiveIntensity: 0.55,
+    roughness: 0.6,
+    transparent: true,
+    opacity: 0.85,
+    side: THREE.DoubleSide,
+  });
+
+  // Thân: lathe từ đỉnh đầu xuống vạt áo.
+  const profile = [];
+  for (let i = 0; i <= 10; i++) {
+    const a = (i / 10) * (Math.PI / 2);
+    profile.push(new THREE.Vector2(Math.sin(a) * 0.55, 1.45 + Math.cos(a) * 0.55));
+  }
+  profile.push(new THREE.Vector2(0.6, 0.9), new THREE.Vector2(0.66, 0.45));
+  const head = new THREE.Mesh(new THREE.LatheGeometry(profile, 32), sheetMat);
+  group.add(head);
+
+  // Vạt dưới: ống hở đáy, mép dưới lượn sóng và tự xoay chậm.
+  const skirtGeo = new THREE.CylinderGeometry(0.66, 0.78, 0.5, 48, 4, true);
+  const pos = skirtGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i);
+    if (y < -0.2) {
+      const ang = Math.atan2(pos.getZ(i), pos.getX(i));
+      pos.setY(i, y + Math.sin(ang * 7) * 0.12);
+    }
+  }
+  skirtGeo.computeVertexNormals();
+  const skirt = new THREE.Mesh(skirtGeo, sheetMat);
+  skirt.position.y = 0.2;
+  group.add(skirt);
+  group.userData.skirt = skirt;
+
+  // Mắt và miệng.
+  const dark = new THREE.MeshBasicMaterial({ color: '#1b2140' });
+  for (const sx of [-0.18, 0.18]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.085, 12, 10), dark);
+    eye.scale.set(1, 1.5, 0.5);
+    eye.position.set(sx, 1.55, 0.51);
+    group.add(eye);
+  }
+  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.025, 8, 16), dark);
+  mouth.scale.y = 1.4;
+  mouth.position.set(0, 1.3, 0.55);
+  group.add(mouth);
+
+  // Hai tay ngắn giơ ra trước.
+  for (const sx of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.32, 4, 8), sheetMat);
+    arm.rotation.x = Math.PI / 2.4;
+    arm.rotation.z = sx * 0.3;
+    arm.position.set(sx * 0.58, 1.05, 0.25);
+    group.add(arm);
+  }
+  return group;
 }
 
 /** Áo đấu treo trên giá ở cửa hang. */

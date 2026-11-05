@@ -36,9 +36,6 @@ export const POLL = {
 
 // Bảng tin lớn trong hang.
 export const SCOREBOARD = {
-  home: 'NHÀ',
-  away: 'KHÁCH',
-  score: '0 - 0',
   note: 'Vào đây giao lưu võ thuật 👊',
   // Video YouTube chiếu dưới bảng tỉ số, phát ngẫu nhiên lần lượt. Để mảng rỗng = không chiếu.
   // Chỉ dùng video của kênh chính thức có cho nhúng (video chặn nhúng sẽ tự bị bỏ qua).
@@ -71,6 +68,15 @@ export const SCOREBOARD = {
     '1ByXkUgYQls', // Charging Up For Chelsea! | Inside Training (187K)
   ],
 };
+
+// Lịch thi đấu sắp tới trên bảng lớn trong hang. Lấy từ API công khai (không chính thức) của ESPN, mã đội theo ESPN.
+export const FIXTURE_TEAMS = [
+  { espnId: 364, name: 'Liverpool' },
+  { espnId: 382, name: 'Man City' },
+  { espnId: 360, name: 'Man Utd' },
+  { espnId: 363, name: 'Chelsea' },
+  { espnId: 359, name: 'Arsenal' },
+];
 
 // Chân dung treo tường. Có ảnh thì đặt vào public/images/legends/ và điền `img`.
 export const LEGENDS = [

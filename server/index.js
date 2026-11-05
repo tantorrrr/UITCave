@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
-import { POLL } from '../src/config.js';
+import { FIXTURE_TEAMS, POLL } from '../src/config.js';
 
 // Khi dev, Vite chiếm PORT (nếu có) nên server luôn ở 8787 để khớp proxy trong vite.config.js.
 const PORT = process.argv.includes('--dev') ? 8787 : Number(process.env.PORT) || 8787;
@@ -52,8 +52,57 @@ function serveStatic(req, res) {
   fs.createReadStream(file).pipe(res);
 }
 
-const server = http.createServer((req, res) => {
+// --- Lịch thi đấu (ESPN), cache 30 phút; lỗi mạng thì giữ dữ liệu cũ ---------
+const FIXTURE_TTL_MS = 30 * 60 * 1000;
+const FIXTURE_LIMIT = 10;
+let fixtureCache = { at: 0, matches: [] };
+let fixtureLoading = null;
+
+async function fetchTeamFixtures(espnId) {
+  const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/all/teams/${espnId}/schedule?fixture=true`;
+  const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+  if (!r.ok) throw new Error(`ESPN ${espnId}: ${r.status}`);
+  const j = await r.json();
+  return (j.events ?? []).map((e) => {
+    const c = e.competitions?.[0];
+    const side = (h) => c?.competitors?.find((t) => t.homeAway === h)?.team ?? {};
+    return {
+      id: e.id,
+      date: e.date,
+      state: c?.status?.type?.state,
+      league: e.league?.abbreviation ?? e.league?.name ?? '',
+      home: side('home').shortDisplayName ?? '?',
+      away: side('away').shortDisplayName ?? '?',
+    };
+  });
+}
+
+async function loadFixtures() {
+  if (Date.now() - fixtureCache.at < FIXTURE_TTL_MS) return fixtureCache.matches;
+  fixtureLoading ??= (async () => {
+    try {
+      const lists = await Promise.allSettled(FIXTURE_TEAMS.map((t) => fetchTeamFixtures(t.espnId)));
+      const byId = new Map();
+      for (const l of lists) if (l.status === 'fulfilled') for (const m of l.value) byId.set(m.id, m);
+      const now = Date.now();
+      const matches = [...byId.values()]
+        .filter((m) => m.state === 'pre' && Date.parse(m.date) > now)
+        .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
+        .slice(0, FIXTURE_LIMIT);
+      if (matches.length) fixtureCache = { at: Date.now(), matches };
+    } catch (err) {
+      console.warn('fixtures:', err.message);
+    } finally {
+      fixtureLoading = null;
+    }
+    return fixtureCache.matches;
+  })();
+  return fixtureLoading;
+}
+
+const server = http.createServer(async (req, res) => {
   if (req.url.startsWith('/api/stats')) return json(res, 200, { online: players.size });
+  if (req.url.startsWith('/api/fixtures')) return json(res, 200, { matches: await loadFixtures() });
   serveStatic(req, res);
 });
 

@@ -457,6 +457,7 @@ html, body {
   .poll-q { font-size: 12px; margin-bottom: 6px; }
   .poll-opts button { padding: 6px 2px; font-size: 12px; }
   .chat { top: 206px; width: calc(100vw - 24px); max-height: 170px; }
+  .ghost-banner { top: auto; bottom: 180px; font-size: 13px; }
 }
 
 @keyframes fade { from { opacity: 0; } }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { CSS3DObject, CSS3DRenderer } from 'three/addons/renderers/CSS3DRenderer.js';
-import { BRAND, LEGENDS, POLL, SCOREBOARD } from './config.js';
+import { BRAND, FIXTURE_TEAMS, LEGENDS, POLL, SCOREBOARD } from './config.js';
 import { createAvatar } from './avatar.js';
 import { createAudio } from './audio.js';
 import { connect } from './net.js';
@@ -14,7 +14,19 @@ const WALK_SPEED = 5;
 const PUNCH_RANGE = 2.2;
 const MAX_HP = 5; // khớp với server/index.js
 const SEND_INTERVAL = 1 / 15;
-const SCREEN_Z = -19;
+const SCREEN_Z = -17;
+const SCREEN_HALF_W = 9.6; // nửa bề ngang khung màn hình, để chặn người chơi đi xuyên
+const DOME_R = 27;
+const DOME_SY = 0.95; // vòm cao để chứa màn hình lớn và bảng lịch thi đấu
+const VN_TIME = new Intl.DateTimeFormat('vi-VN', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+  weekday: 'short',
+  day: '2-digit',
+  month: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
 const TUTORIAL_KEY = 'hanguit.tutorial.punch';
 
 // ---------------------------------------------------------------------------
@@ -23,7 +35,7 @@ const TUTORIAL_KEY = 'hanguit.tutorial.punch';
 
 function buildCave(scene) {
   scene.background = new THREE.Color('#1c0f0a');
-  scene.fog = new THREE.Fog('#1c0f0a', 22, 46);
+  scene.fog = new THREE.Fog('#1c0f0a', 30, 70);
   scene.add(new THREE.HemisphereLight('#c09070', '#3a2216', 2.4));
 
   const floor = new THREE.Mesh(
@@ -34,9 +46,9 @@ function buildCave(scene) {
   floor.receiveShadow = true;
   scene.add(floor);
 
-  const dome = new THREE.Mesh(rockGeometry(27, 11, 3, 0.07), rockMaterial('#6b4a3a'));
+  const dome = new THREE.Mesh(rockGeometry(DOME_R, 11, 3, 0.07), rockMaterial('#6b4a3a'));
   dome.material.side = THREE.BackSide;
-  dome.scale.y = 0.55;
+  dome.scale.y = DOME_SY;
   scene.add(dome);
 
   const rand = rng(99);
@@ -49,7 +61,7 @@ function buildCave(scene) {
     const a = rand() * Math.PI * 2;
     const r = 4 + rand() * 18;
     const s = 0.6 + rand() * 1.4;
-    const y = Math.sqrt(Math.max(0, 1 - (r / 27) ** 2)) * 27 * 0.55 - 0.8 * s;
+    const y = Math.sqrt(Math.max(0, 1 - (r / DOME_R) ** 2)) * DOME_R * DOME_SY - 0.8 * s;
     m4.compose(new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r), q, new THREE.Vector3(s, s, s));
     stal.setMatrixAt(i, m4);
   }
@@ -115,7 +127,7 @@ function buildCave(scene) {
   for (let i = 0; i < slots; i++) {
     const side = i % 2 ? 1 : -1;
     const idx = Math.floor(i / 2);
-    const a = -Math.PI / 2 + side * (0.42 + idx * 0.28);
+    const a = -Math.PI / 2 + side * (0.62 + idx * 0.28);
     addPoster(scene, LEGENDS[i], a, wallR);
   }
   for (let i = 0; i < 10; i++) {
@@ -178,30 +190,29 @@ function buildScreen(scene, css3dScene, { onVideoError } = {}) {
   group.position.set(0, 0, SCREEN_Z);
   scene.add(group);
 
+  // Bố cục từ dưới lên: video 16:9, dải chữ, bảng lịch thi đấu.
+  const VIDEO_W = 17.6;
+  const VIDEO_H = (VIDEO_W * 9) / 16;
+  const videoY = 1.6 + VIDEO_H / 2;
+  const noteY = videoY + VIDEO_H / 2 + 0.45;
+  const BOARD_H = 4.6;
+  const boardY = noteY + 0.5 + BOARD_H / 2;
+
+  const frameH = boardY + BOARD_H / 2 + 0.3 - 1.1;
   const frame = new THREE.Mesh(
-    new THREE.BoxGeometry(11, 9.4, 0.4),
+    new THREE.BoxGeometry(SCREEN_HALF_W * 2 - 0.4, frameH, 0.4),
     new THREE.MeshStandardMaterial({ color: '#1b1210', roughness: 0.6 }),
   );
-  frame.position.set(0, 6.8, -0.3);
+  frame.position.set(0, 1.1 + frameH / 2, -0.3);
   group.add(frame);
 
-  const scoreTex = textCanvas(1024, 256, (g, w, h) => {
-    g.fillStyle = '#f4efe6';
-    g.fillRect(0, 0, w, h);
-    g.fillStyle = BRAND.jersey.body;
-    g.fillRect(0, 0, w, 18);
-    g.fillStyle = '#1b1b1b';
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    g.font = '800 92px Bitter, Georgia, serif';
-    g.fillText(SCOREBOARD.home, w * 0.22, h / 2 + 8);
-    g.fillText(SCOREBOARD.away, w * 0.78, h / 2 + 8);
-    g.font = '800 110px Bitter, Georgia, serif';
-    g.fillText(SCOREBOARD.score, w / 2, h / 2 + 8);
-  });
-  const score = new THREE.Mesh(new THREE.PlaneGeometry(10, 2.5), new THREE.MeshBasicMaterial({ map: scoreTex }));
-  score.position.set(0, 10.1, 0);
-  group.add(score);
+  const boardTex = textCanvas(2048, 536, (g, w, h) => drawFixtures(g, w, h, null));
+  const board = new THREE.Mesh(
+    new THREE.PlaneGeometry(VIDEO_W, BOARD_H),
+    new THREE.MeshBasicMaterial({ map: boardTex, fog: false }),
+  );
+  board.position.set(0, boardY, 0);
+  group.add(board);
 
   const noteTex = textCanvas(768, 96, (g, w, h) => {
     g.fillStyle = BRAND.jersey.body;
@@ -215,13 +226,10 @@ function buildScreen(scene, css3dScene, { onVideoError } = {}) {
     g.textBaseline = 'middle';
     g.fillText(SCOREBOARD.note, w / 2, h / 2 + 2);
   });
-  const note = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 0.65), new THREE.MeshBasicMaterial({ map: noteTex }));
-  note.position.set(0, 8.35, 0.05);
+  const note = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 0.8), new THREE.MeshBasicMaterial({ map: noteTex, fog: false }));
+  note.position.set(0, noteY, 0.05);
   group.add(note);
 
-  const VIDEO_W = 8.8;
-  const VIDEO_H = (VIDEO_W * 9) / 16;
-  const videoY = 5.35;
   let player = null;
 
   const idleTexture = (message) =>
@@ -317,11 +325,22 @@ function buildScreen(scene, css3dScene, { onVideoError } = {}) {
     css3dScene.add(obj);
   }
 
-  const glow = new THREE.PointLight('#8fb0ff', 10, 14, 1.6);
-  glow.position.set(0, 6, 2.5);
+  const glow = new THREE.PointLight('#8fb0ff', 22, 20, 1.6);
+  glow.position.set(0, 8, 4);
   group.add(glow);
 
   return {
+    async setFixtures(matches) {
+      // Font chỉ dùng trên canvas chưa được trình duyệt tải (kể cả bộ chữ tiếng Việt): tải trước rồi mới vẽ.
+      await Promise.all(
+        ['800 58px Bitter', '700 42px "Be Vietnam Pro"', '600 34px "Be Vietnam Pro"', '500 34px "Be Vietnam Pro"'].map((f) =>
+          document.fonts.load(f, 'LỊCH THI ĐẤU Việt').catch(() => {}),
+        ),
+      );
+      const canvas = boardTex.image;
+      drawFixtures(canvas.getContext('2d'), canvas.width, canvas.height, matches);
+      boardTex.needsUpdate = true;
+    },
     setVideoMuted(muted) {
       if (!player?.mute) return;
       if (muted) player.mute();
@@ -336,6 +355,90 @@ function buildScreen(scene, css3dScene, { onVideoError } = {}) {
       player?.destroy?.();
     },
   };
+}
+
+const OUR_TEAMS = new Set(FIXTURE_TEAMS.map((t) => t.name));
+
+function formatKickoff(iso) {
+  const p = Object.fromEntries(VN_TIME.formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+  return `${p.weekday} ${p.day}/${p.month} · ${p.hour}:${p.minute}`;
+}
+
+/** Vẽ bảng "Lịch thi đấu sắp tới": 2 cột × 5 trận, trận gần nhất được làm nổi. matches = null: đang tải. */
+function drawFixtures(g, w, h, matches) {
+  g.fillStyle = '#0f1426';
+  g.fillRect(0, 0, w, h);
+  g.fillStyle = BRAND.jersey.body;
+  g.fillRect(0, 0, w, 96);
+  g.fillStyle = BRAND.jersey.trim;
+  g.fillRect(0, 96, w, 6);
+
+  g.textBaseline = 'middle';
+  g.textAlign = 'left';
+  g.fillStyle = '#fff';
+  g.font = '800 58px Bitter, Georgia, serif';
+  g.fillText('📅 LỊCH THI ĐẤU SẮP TỚI', 36, 50);
+  g.textAlign = 'right';
+  g.font = '500 34px "Be Vietnam Pro", sans-serif';
+  g.globalAlpha = 0.85;
+  g.fillText('Giờ Việt Nam', w - 36, 52);
+  g.globalAlpha = 1;
+
+  if (!matches?.length) {
+    g.textAlign = 'center';
+    g.font = '600 48px "Be Vietnam Pro", sans-serif';
+    g.fillStyle = '#c9d3ee';
+    g.fillText(matches ? 'Chưa có lịch thi đấu' : 'Đang tải lịch thi đấu…', w / 2, (h + 100) / 2);
+    return;
+  }
+
+  const ROWS = 5;
+  const top = 112;
+  const rowH = (h - top - 10) / ROWS;
+  const colW = w / 2;
+  matches.slice(0, ROWS * 2).forEach((m, i) => {
+    const x = (i < ROWS ? 0 : colW) + 30;
+    const y = top + (i % ROWS) * rowH;
+    if (i === 0) {
+      g.fillStyle = 'rgba(242, 194, 48, 0.18)';
+      g.fillRect(x - 14, y + 4, colW - 32, rowH - 8);
+      g.fillStyle = BRAND.jersey.trim;
+      g.fillRect(x - 14, y + 4, 8, rowH - 8);
+    } else if (i % 2 === 0) {
+      g.fillStyle = 'rgba(255, 255, 255, 0.04)';
+      g.fillRect(x - 14, y + 4, colW - 32, rowH - 8);
+    }
+    const cy = y + rowH / 2;
+    g.textAlign = 'left';
+    g.font = '600 34px "Be Vietnam Pro", sans-serif';
+    g.fillStyle = i === 0 ? BRAND.jersey.trim : '#9fb0d8';
+    g.fillText(formatKickoff(m.date), x + 6, cy);
+
+    // Tên hai đội: đội trong danh sách theo dõi được tô sáng.
+    let tx = x + 330;
+    const team = (name) => {
+      g.font = OUR_TEAMS.has(name) ? '700 42px "Be Vietnam Pro", sans-serif' : '500 40px "Be Vietnam Pro", sans-serif';
+      g.fillStyle = OUR_TEAMS.has(name) ? '#ffffff' : '#c9d3ee';
+      g.fillText(name, tx, cy);
+      tx += g.measureText(name).width;
+    };
+    team(m.home);
+    g.font = '500 34px "Be Vietnam Pro", sans-serif';
+    g.fillStyle = '#7d8bb0';
+    g.fillText('  vs  ', tx, cy);
+    tx += g.measureText('  vs  ').width;
+    team(m.away);
+
+    g.textAlign = 'right';
+    g.font = '500 26px "Be Vietnam Pro", sans-serif';
+    g.fillStyle = '#7d8bb0';
+    g.fillText(shortLeague(m.league), x + colW - 56, cy);
+  });
+}
+
+function shortLeague(name) {
+  const map = { 'Premier League': 'NHA', 'UEFA Champions League': 'C1', 'UEFA Europa League': 'C2', 'Carabao Cup': 'League Cup', 'FA Cup': 'FA Cup' };
+  return map[name] ?? name;
 }
 
 /** setPointerCapture ném lỗi khi chuột đang bị khoá hoặc con trỏ đã nhả; bỏ qua được. */
@@ -610,6 +713,16 @@ export function mountCave(app, { profile, onLeave }) {
       hud.videoBtn.textContent = '▶ Xem video trên YouTube';
     },
   });
+  async function refreshFixtures() {
+    try {
+      const j = await fetch('/api/fixtures').then((r) => r.json());
+      screen.setFixtures(j.matches ?? []);
+    } catch {
+      screen.setFixtures([]);
+    }
+  }
+  refreshFixtures();
+  const fixtureTimer = setInterval(refreshFixtures, 30 * 60 * 1000);
   const confetti = createConfetti(scene);
   const audio = createAudio();
 
@@ -734,7 +847,8 @@ export function mountCave(app, { profile, onLeave }) {
         me.pos.set(self.x, 0, self.z);
         setHealth(myId, self.hp ?? MAX_HP, self.ghostLeft ?? 0);
       }
-      me.ry = Math.atan2(-me.pos.x, -me.pos.z);
+      // Vừa vào hang: quay mặt về màn hình lớn để thấy ngay video và lịch thi đấu.
+      me.ry = Math.atan2(-me.pos.x, SCREEN_Z - me.pos.z);
       camYaw = me.ry + Math.PI;
       msg.players.forEach(addOther);
       hud.log.replaceChildren();
@@ -862,7 +976,7 @@ export function mountCave(app, { profile, onLeave }) {
   // --- Điều khiển -----------------------------------------------------------
   const keys = new Set();
   let camYaw = 0;
-  let camPitch = 0.35;
+  let camPitch = -0.25; // máy quay thấp, ngước lên để thấy trọn màn hình lớn và bảng lịch
   let dragging = false;
   const canvas = renderer.domElement;
 
@@ -926,7 +1040,7 @@ export function mountCave(app, { profile, onLeave }) {
   canvas.addEventListener('pointermove', (e) => {
     if (document.pointerLockElement !== canvas && !dragging) return;
     camYaw -= e.movementX * 0.0035;
-    camPitch = THREE.MathUtils.clamp(camPitch + e.movementY * 0.0025, -0.15, 1.1);
+    camPitch = THREE.MathUtils.clamp(camPitch + e.movementY * 0.0025, -0.45, 1.1);
   });
   addEventListener('keydown', onKeyDown);
   addEventListener('keyup', onKeyUp);
@@ -1004,6 +1118,8 @@ export function mountCave(app, { profile, onLeave }) {
     const r = Math.hypot(me.pos.x, me.pos.z);
     if (r > CAVE_RADIUS) me.pos.multiplyScalar(CAVE_RADIUS / r);
     if (r < FIRE_RADIUS && r > 0) me.pos.multiplyScalar(FIRE_RADIUS / r);
+    // Không đi xuyên ra sau màn hình.
+    if (Math.abs(me.pos.x) < SCREEN_HALF_W && me.pos.z < SCREEN_Z + 0.8) me.pos.z = SCREEN_Z + 0.8;
 
     me.avatar.root.position.x = me.pos.x;
     me.avatar.root.position.z = me.pos.z;
@@ -1044,7 +1160,7 @@ export function mountCave(app, { profile, onLeave }) {
 
     // Camera góc ba, kẹp trong lòng hang.
     const dist = 6.5;
-    camTarget.set(me.pos.x, 1.6, me.pos.z);
+    camTarget.set(me.pos.x, 2.8, me.pos.z);
     camera.position.set(
       me.pos.x + Math.sin(camYaw) * Math.cos(camPitch) * dist,
       1.6 + Math.sin(camPitch) * dist,
@@ -1070,6 +1186,7 @@ export function mountCave(app, { profile, onLeave }) {
 
   return () => {
     cancelAnimationFrame(raf);
+    clearInterval(fixtureTimer);
     screen.dispose();
     net.close();
     audio.close();
