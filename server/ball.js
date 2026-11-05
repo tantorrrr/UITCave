@@ -1,7 +1,7 @@
 import { BALL, PITCH } from '../src/config.js';
 
 // Quả bóng chung: server giữ vị trí thật, chạy vật lý 2D (mặt sàn) mỗi nhịp tick.
-// Người chơi đi chạm vào bóng thì rê bóng; bấm sút thì bóng bay mạnh theo hướng đang chạy.
+// Người chơi đi chạm vào bóng thì rê bóng; giữ nút sút để lấy lực, nhả ra thì bóng đi theo hướng ngắm.
 
 const PLAYER_RADIUS = 0.55;
 const POST_RADIUS = 0.08;
@@ -93,24 +93,39 @@ export function createBall({ onGoal } = {}) {
         if (d >= reach) continue;
         const nx = d > 1e-3 ? dx / d : Math.sin(p.ry);
         const nz = d > 1e-3 ? dz / d : Math.cos(p.ry);
-        // Đẩy bóng ra khỏi người, rồi cho bóng lăn theo hướng người đang đi vào nó.
-        ball.x = p.x + nx * reach;
-        ball.z = p.z + nz * reach;
-        const speed = Math.max(BALL.dribbleSpeed, Math.hypot(p.vx ?? 0, p.vz ?? 0) * 1.25);
-        ball.vx = nx * speed;
-        ball.vz = nz * speed;
+        // Rê bóng: chạy vào bóng từ phía sau thì bóng được kéo về ngay trước mũi giày và lăn theo
+        // hướng chạy, nhanh hơn người một chút nên dính chân. Chạm ngang/đứng yên thì chỉ đẩy ra.
+        const pv = Math.hypot(p.vx ?? 0, p.vz ?? 0);
+        let ux = nx;
+        let uz = nz;
+        if (pv > 0.8 && (p.vx * nx + p.vz * nz) / pv > 0.3) {
+          ux = (p.vx / pv) * 0.9 + nx * 0.1;
+          uz = (p.vz / pv) * 0.9 + nz * 0.1;
+          const ul = Math.hypot(ux, uz) || 1;
+          ux /= ul;
+          uz /= ul;
+        }
+        ball.x = p.x + ux * reach;
+        ball.z = p.z + uz * reach;
+        const speed = Math.max(BALL.dribbleSpeed, pv * BALL.dribbleBoost);
+        ball.vx = ux * speed;
+        ball.vz = uz * speed;
         lastTouchId = p.id;
         lastTouchAt = now;
       }
     }
 
-    ball.x += ball.vx * dt;
-    ball.z += ball.vz * dt;
+    // Sút mạnh đi xa mỗi nhịp: chia nhỏ bước để khỏi xuyên qua cột dọc.
+    const n = Math.max(1, Math.ceil((Math.hypot(ball.vx, ball.vz) * dt) / 0.3));
+    for (let i = 0; i < n; i++) {
+      ball.x += (ball.vx * dt) / n;
+      ball.z += (ball.vz * dt) / n;
+      collide();
+    }
     const damp = Math.exp(-BALL.friction * dt);
     ball.vx *= damp;
     ball.vz *= damp;
     if (Math.hypot(ball.vx, ball.vz) < 0.05) ball.vx = ball.vz = 0;
-    collide();
 
     if (!goalUntil && inGoalMouth()) {
       const side = ball.x > 0 ? 'east' : 'west';
@@ -122,18 +137,27 @@ export function createBall({ onGoal } = {}) {
     if (!goalUntil && now - lastTouchAt > BALL.idleResetMs && Math.hypot(ball.x - BALL.start.x, ball.z - BALL.start.z) > 1) reset();
   }
 
-  /** Người chơi bấm sút: chỉ tính khi đứng đủ gần bóng. Trả về true nếu sút được. */
-  function kick(p) {
+  /**
+   * Người chơi sút: chỉ tính khi đứng đủ gần bóng. power 0..1 (giữ nút lâu thì mạnh),
+   * aim là hướng ngắm {x, z} từ máy khách; thiếu thì theo hướng đang chạy. Trả về true nếu sút được.
+   */
+  function kick(p, power = 1, aim = null) {
     if (goalUntil || p.ghostUntil) return false;
     const dx = ball.x - p.x;
     const dz = ball.z - p.z;
     const d = Math.hypot(dx, dz);
     if (d > BALL.kickRange) return false;
-    // Hướng sút: theo hướng đang chạy; đứng yên thì theo hướng từ người tới bóng.
+    // Hướng sút: theo hướng ngắm; không có thì theo hướng đang chạy, đứng yên thì từ người tới bóng.
     let nx = p.vx ?? 0;
     let nz = p.vz ?? 0;
     let len = Math.hypot(nx, nz);
-    if (len < 0.8) {
+    const ax = Number(aim?.x);
+    const az = Number(aim?.z);
+    if (Number.isFinite(ax) && Number.isFinite(az) && Math.hypot(ax, az) > 1e-3) {
+      nx = ax;
+      nz = az;
+      len = Math.hypot(ax, az);
+    } else if (len < 0.8) {
       nx = dx;
       nz = dz;
       len = d;
@@ -143,8 +167,10 @@ export function createBall({ onGoal } = {}) {
       nz = Math.cos(p.ry);
       len = 1;
     }
-    ball.vx = (nx / len) * BALL.kickSpeed;
-    ball.vz = (nz / len) * BALL.kickSpeed;
+    const pw = Math.min(1, Math.max(0, Number(power) || 0));
+    const speed = BALL.kickMin + (BALL.kickMax - BALL.kickMin) * pw;
+    ball.vx = (nx / len) * speed;
+    ball.vz = (nz / len) * speed;
     lastTouchId = p.id;
     lastTouchAt = Date.now();
     return true;

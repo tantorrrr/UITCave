@@ -52,8 +52,11 @@ export const BALL = {
   radius: 0.35,
   start: { x: 0, z: 0 }, // chấm giữa sân
   friction: 1.1, // càng lớn bóng càng nhanh dừng
-  dribbleSpeed: 4.5, // chạm vào bóng khi đi
-  kickSpeed: 15, // bấm sút
+  dribbleSpeed: 1.6, // đứng yên chạm bóng: đẩy nhẹ ra
+  dribbleBoost: 1.15, // đang chạy: bóng lăn nhanh hơn người chút xíu nên vẫn dính chân
+  kickMin: 5, // chạm nhẹ (bấm nhả ngay)
+  kickMax: 22, // giữ đủ lực
+  chargeMs: 900, // thời gian giữ để đầy lực
   kickRange: 2.2,
   // Hai khung thành ở hai đầu sân (±x); vạch vôi ở |x| = goalLineX (= PITCH.halfLength).
   goalLineX: 13,

@@ -214,3 +214,42 @@ export function createBallView(scene, { fontsReady } = {}) {
     },
   };
 }
+
+/**
+ * Mũi tên ngắm nằm trên cỏ dưới quả bóng (chỉ mình thấy). show(pos, dir, power):
+ * pos null thì ẩn; power < 0 là đang đứng gần bóng (mờ, ngắn), 0..1 là đang lấy lực (dài và đỏ dần).
+ */
+export function createAimArrow(scene) {
+  const shape = new THREE.Shape();
+  // Vẽ dọc trục +y, gốc ở 0: thân dài 1, đầu nhọn rộng 0.5.
+  shape.moveTo(-0.09, 0);
+  shape.lineTo(0.09, 0);
+  shape.lineTo(0.09, 0.72);
+  shape.lineTo(0.25, 0.72);
+  shape.lineTo(0, 1);
+  shape.lineTo(-0.25, 0.72);
+  shape.lineTo(-0.09, 0.72);
+  shape.closePath();
+  const geo = new THREE.ShapeGeometry(shape);
+  geo.rotateX(-Math.PI / 2); // nằm trên mặt sàn, mũi chỉ về -z
+  geo.rotateY(Math.PI); // mũi chỉ về +z
+  const mat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, depthWrite: false });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.renderOrder = 2;
+  mesh.visible = false;
+  scene.add(mesh);
+  const color = new THREE.Color();
+  return {
+    show(pos, dir, power) {
+      mesh.visible = !!pos;
+      if (!pos) return;
+      const charging = power >= 0;
+      const len = charging ? 1.6 + power * 3.4 : 1.3;
+      mesh.scale.set(charging ? 1.3 : 1, 1, len);
+      mesh.position.set(pos.x + dir.x * (BALL.radius + 0.1), 0.04, pos.z + dir.z * (BALL.radius + 0.1));
+      mesh.rotation.y = Math.atan2(dir.x, dir.z);
+      mat.opacity = charging ? 0.85 : 0.3;
+      mat.color.copy(charging ? color.setHSL((120 - power * 120) / 360, 0.85, 0.55) : color.set('#ffffff'));
+    },
+  };
+}

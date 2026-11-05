@@ -597,3 +597,24 @@ html, body {
 
 @keyframes fade { from { opacity: 0; } }
 @keyframes pop { from { transform: scale(0.96); opacity: 0; } }
+
+/* ---------- Thanh lực sút ---------- */
+.power-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 180px;
+  transform: translateX(-50%);
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(10, 8, 14, 0.7);
+  pointer-events: none;
+}
+.power-bar.show { display: flex; }
+.power-track { width: 180px; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.15); overflow: hidden; }
+.power-fill { height: 100%; width: 0; border-radius: 5px; }
+.power-lbl { font: 700 12px var(--font-body); color: #fff; }
+.hud.touch .power-bar { bottom: max(180px, calc(env(safe-area-inset-bottom) + 172px)); }
+.hud.touch .power-track { width: 140px; }

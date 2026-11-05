@@ -5,7 +5,7 @@ import { ARENA, BALL, BRAND, CLUB_ORDER, CLUBS, FIXTURE_TEAMS, FAN_SONGS, LEGEND
 import { createAvatar } from './avatar.js';
 import { LEGEND_PHOTOS } from './legendPhotos.js';
 import { createBanners, latestOutcomes } from './banners.js';
-import { createBallView } from './ball.js';
+import { createAimArrow, createBallView } from './ball.js';
 import { createAudio } from './audio.js';
 import { connect } from './net.js';
 import { createTorch, rng, rockGeometry, rockMaterial, textCanvas } from './scenery.js';
@@ -993,6 +993,9 @@ function buildHud(app, { onLeave }) {
   const hint = el('div', { className: 'hint-bottom' }, 'Bấm vào cảnh để xoay bằng chuột');
   const toast = el('div', { className: 'toast' });
   const punchHint = el('div', { className: 'punch-btn' }, '👊 Nhấn F để đấm');
+  // Thanh lực sút: hiện khi đang giữ nút sút.
+  const powerFill = el('div', { className: 'power-fill' });
+  const powerBar = el('div', { className: 'power-bar' }, el('div', { className: 'power-track' }, powerFill), el('span', { className: 'power-lbl' }, 'Lực sút'));
   const tomatoBtn = el('button', { className: 'btn-tomato', type: 'button', title: 'Ném cà chua (T)' }, el('span', { className: 'ico' }, '🍅'), el('span', { className: 'lbl' }, ' Ném cà chua'), kbd('T'));
 
   // Điều khiển cảm ứng: cần gạt bên trái, nút đấm bên phải.
@@ -1001,7 +1004,7 @@ function buildHud(app, { onLeave }) {
   const punchTouch = el('button', { className: 'btn-punch', type: 'button', 'aria-label': 'Đấm' }, '👊');
 
   const isTouch = matchMedia('(pointer: coarse)').matches;
-  const hud = el('div', { className: `hud${isTouch ? ' touch' : ''}` }, top, roomInfo, chat, poll, celebrate, keysBtn, hint, toast, punchHint, joystick, punchTouch, ghostBanner, tomatoBtn);
+  const hud = el('div', { className: `hud${isTouch ? ' touch' : ''}` }, top, roomInfo, chat, poll, celebrate, keysBtn, hint, toast, punchHint, powerBar, joystick, punchTouch, ghostBanner, tomatoBtn);
   app.append(hud);
   // Điện thoại (kể cả xoay ngang) và màn hẹp: gọn tối đa để không che cảnh 3D.
   const compact = isTouch || matchMedia('(max-width: 640px)').matches;
@@ -1090,7 +1093,7 @@ function buildHud(app, { onLeave }) {
     const rows = [
       [['W', 'A', 'S', 'D'], 'Đi lại'],
       [['Chuột'], 'Xoay góc nhìn (bấm vào cảnh để khoá chuột, Esc để thả)'],
-      [['F', 'Click'], 'Đấm người trong vòng đỏ, hoặc sút bóng khi đứng gần bóng (đi chạm vào bóng là rê)'],
+      [['F', 'Click'], 'Đấm người trong vòng đỏ. Gần bóng: giữ để lấy lực, nhả để sút theo hướng nhìn / hướng đang chạy (đi chạm vào bóng là rê)'],
       [['G'], 'Ăn mừng'],
       [['T'], 'Ném cà chua vào cờ đội vừa thua (ở Góc cà chua)'],
       [['Enter'], 'Chat'],
@@ -1120,6 +1123,13 @@ function buildHud(app, { onLeave }) {
     pollNav: nav,
     setCount: (n) => (count.textContent = compact ? `👥 ${n}` : `${n} anh em trong hang`),
     showToast, addChat, card, toggleHelp,
+    /** p: 0..1 đang giữ lực; null thì ẩn thanh lực. */
+    setPower(p) {
+      powerBar.classList.toggle('show', p != null);
+      if (p == null) return;
+      powerFill.style.width = `${Math.round(p * 100)}%`;
+      powerFill.style.background = `hsl(${Math.round(120 - p * 120)} 85% 50%)`;
+    },
     setMyHp(hp, ghost) {
       myHp.textContent = ghost ? '👻 Ma' : '❤'.repeat(hp) + '♡'.repeat(MAX_HP - hp);
       myHp.classList.toggle('low', !ghost && hp <= 2);
@@ -1171,6 +1181,7 @@ export function mountCave(app, { profile, onLeave }) {
   // Cờ chiến thắng (đội vừa thắng) và Góc cà chua (đội vừa thua), dựa trên kết quả gần nhất.
   // Quả bóng chung + hai khung thành (vị trí bóng do server quyết định, xem server/ball.js).
   const ballView = BALL.enabled ? createBallView(scene, { fontsReady: canvasFontsReady }) : null;
+  const aimArrow = BALL.enabled ? createAimArrow(scene) : null;
   const banners = createBanners(scene, {
     ceilingAt: (r) => Math.sqrt(Math.max(0, 1 - (r / DOME_R) ** 2)) * DOME_R * DOME_SY,
     fontsReady: canvasFontsReady,
@@ -1602,29 +1613,45 @@ export function mountCave(app, { profile, onLeave }) {
   let dragging = false;
   const canvas = renderer.domElement;
 
-  function doPunch() {
+  // Sút bóng: nhấn giữ (F / chuột / nút 👊) để lấy lực, nhả ra thì sút. src cho biết nhả bằng gì.
+  let charge = null; // { src: 'key' | 'mouse' | 'touch', start }
+  let moveAim = null; // hướng đang chạy (theo phím / cần gạt), null khi đứng yên
+  const chargePower = () => (charge ? Math.min(1, (performance.now() - charge.start) / BALL.chargeMs) : 0);
+  // Hướng sút: đang chạy thì theo hướng chạy, đứng yên thì theo hướng máy quay nhìn.
+  const aimDir = () => moveAim ?? { x: -Math.sin(camYaw), z: -Math.cos(camYaw) };
+
+  function doPunch(src = 'key') {
+    if (charge) return;
     if (me.avatar.ghost) {
       hud.showToast('👻 Ma không đánh được ai');
       return;
     }
     const target = punchTarget();
-    // Bóng gần hơn người đứng cạnh thì sút bóng, không đấm.
+    // Bóng gần hơn người đứng cạnh thì lấy đà sút bóng, không đấm.
     const bd = ballDistance();
     const td = target ? Math.hypot(target.avatar.root.position.x - me.pos.x, target.avatar.root.position.z - me.pos.z) : Infinity;
     if (bd <= BALL.kickRange && bd < td) {
-      const b = ballView.position;
-      const dx = (b.x - me.pos.x) / (bd || 1);
-      const dz = (b.z - me.pos.z) / (bd || 1);
-      me.ry = Math.atan2(dx, dz);
-      me.avatar.punch(); // vung chân… bằng tay, cho có động tác
-      ballView.nudge(dx, dz);
-      audio.punch();
-      net.send({ t: 'kick' });
+      charge = { src, start: performance.now() };
       return;
     }
     if (!target) return;
     me.ry = Math.atan2(target.avatar.root.position.x - me.pos.x, target.avatar.root.position.z - me.pos.z);
     net.send({ t: 'punch', target: target.id });
+  }
+
+  function releaseShot() {
+    if (!charge) return;
+    const power = chargePower();
+    charge = null;
+    hud.setPower(null);
+    if (me.avatar.ghost) return;
+    const aim = aimDir();
+    me.ry = Math.atan2(aim.x, aim.z);
+    me.avatar.punch(); // vung chân… bằng tay, cho có động tác
+    ballView.nudge(aim.x * (0.4 + power), aim.z * (0.4 + power));
+    audio.punch();
+    // Server tự kiểm còn đủ gần bóng không.
+    net.send({ t: 'kick', power: +power.toFixed(2), aim: { x: +aim.x.toFixed(3), z: +aim.z.toFixed(3) } });
   }
 
   // Khoảng cách tới quả bóng (Infinity nếu tắt bóng hoặc đang là ma).
@@ -1656,8 +1683,12 @@ export function mountCave(app, { profile, onLeave }) {
   hud.punchTouch.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     audio.unlock();
-    doPunch();
+    capture(hud.punchTouch, e.pointerId);
+    doPunch('touch');
   });
+  const touchRelease = () => charge?.src === 'touch' && releaseShot();
+  hud.punchTouch.addEventListener('pointerup', touchRelease);
+  hud.punchTouch.addEventListener('pointercancel', touchRelease);
 
   function onKeyDown(e) {
     if (e.target instanceof HTMLInputElement) return;
@@ -1708,7 +1739,7 @@ export function mountCave(app, { profile, onLeave }) {
   canvas.addEventListener('pointerdown', (e) => {
     audio.unlock();
     if (document.pointerLockElement === canvas) {
-      doPunch();
+      doPunch('mouse');
       return;
     }
     if (e.pointerType === 'mouse') {
@@ -1718,7 +1749,10 @@ export function mountCave(app, { profile, onLeave }) {
     dragging = true;
     capture(canvas, e.pointerId);
   });
-  canvas.addEventListener('pointerup', () => (dragging = false));
+  canvas.addEventListener('pointerup', () => {
+    dragging = false;
+    if (charge?.src === 'mouse') releaseShot();
+  });
   canvas.addEventListener('pointermove', (e) => {
     if (document.pointerLockElement !== canvas && !dragging) return;
     camYaw -= e.movementX * 0.0035;
@@ -1789,10 +1823,12 @@ export function mountCave(app, { profile, onLeave }) {
       const fwdX = -Math.sin(camYaw);
       const fwdZ = -Math.cos(camYaw);
       move.set(fwdX * f - fwdZ * s, 0, fwdZ * f + fwdX * s).normalize().multiplyScalar(WALK_SPEED * amount * dt);
+      moveAim = { x: move.x / move.length(), z: move.z / move.length() };
       const want = Math.atan2(move.x, move.z);
       const diff = Math.atan2(Math.sin(want - me.ry), Math.cos(want - me.ry));
       me.ry += diff * Math.min(1, dt * 12);
     }
+    else moveAim = null;
     me.moving = move.lengthSq() > 0;
     me.pos.add(move).addScaledVector(me.knock, dt);
     me.knock.multiplyScalar(Math.max(0, 1 - dt * 6));
@@ -1822,7 +1858,16 @@ export function mountCave(app, { profile, onLeave }) {
       ring.opacity = o === target ? 0.9 : 0;
     }
     const canKick = ballDistance() <= BALL.kickRange;
-    const hintText = canKick ? '⚽ Nhấn F để sút' : '👊 Nhấn F để đấm';
+    // Đang lấy lực: nhả phím F (kể cả phím do bộ gõ giữ tạm) thì sút; thành ma thì huỷ.
+    if (charge?.src === 'key' && !isHeld('KeyF')) releaseShot();
+    if (charge && me.avatar.ghost) {
+      charge = null;
+      hud.setPower(null);
+    }
+    if (charge) hud.setPower(chargePower());
+    // Mũi tên ngắm dưới bóng: mờ khi đứng gần bóng, rõ và dài dần khi đang lấy lực.
+    aimArrow?.show(charge || canKick ? ballView.position : null, aimDir(), charge ? chargePower() : -1);
+    const hintText = canKick ? '⚽ Giữ F lấy lực, nhả để sút' : '👊 Nhấn F để đấm';
     if (hud.punchHint.textContent !== hintText) hud.punchHint.textContent = hintText;
     hud.punchHint.classList.toggle('show', (!!target || canKick) && !hud.isTouch && document.pointerLockElement !== canvas);
     hud.punchTouch.classList.toggle('ready', !!target || canKick);
