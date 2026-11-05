@@ -17,6 +17,11 @@ const MAX_HP = 5; // khớp với server/index.js
 const SEND_INTERVAL = 1 / 15;
 const SCREEN_Z = -17;
 const SCREEN_HALF_W = 9.6; // nửa bề ngang khung màn hình, để chặn người chơi đi xuyên
+// Bảng kết quả gần đây: đứng bên trái màn hình lớn, xoay về giữa hang.
+const RESULTS_POS = { x: -14.5, z: -12.5 };
+const RESULTS_W = 6.4;
+const RESULTS_H = 8;
+const RESULTS_GAP = 1.05; // góc (rad) bên trái màn hình không treo tranh để khỏi bị bảng che
 const DOME_R = 27;
 const DOME_SY = 1.0; // vòm cao để chứa màn hình lớn và bảng lịch thi đấu
 const VN_TIME = new Intl.DateTimeFormat('vi-VN', {
@@ -124,9 +129,11 @@ function buildCave(scene) {
   const bannerMat = new THREE.MeshStandardMaterial({ map: bannerTex, side: THREE.DoubleSide, roughness: 0.8 });
 
   // Phòng truyền thống: chân dung xếp kín vách từ hai mép màn hình vòng ra sau, nhóm theo CLB.
-  const SCREEN_GAP = 0.62; // nửa góc chừa cho màn hình (rad)
-  const start = -Math.PI / 2 + SCREEN_GAP;
-  const span = Math.PI * 2 - SCREEN_GAP * 2;
+  // Góc chừa trống tính từ hướng màn hình: bên phải chừa cho màn hình, bên trái thêm chỗ cho bảng kết quả.
+  const GAP_RIGHT = 0.62;
+  const GAP_LEFT = RESULTS_GAP;
+  const start = -Math.PI / 2 + GAP_RIGHT;
+  const span = Math.PI * 2 - GAP_RIGHT - GAP_LEFT;
   LEGENDS.forEach((legend, i) => {
     const a = start + (span * (i + 0.5)) / LEGENDS.length;
     addPoster(scene, legend, a, wallR);
@@ -134,7 +141,8 @@ function buildCave(scene) {
   // Đuốc và cờ treo cao phía trên hàng chân dung.
   for (let i = 0; i < 10; i++) {
     const a = (i / 10) * Math.PI * 2 + 0.31;
-    if (Math.abs(Math.atan2(Math.sin(a + Math.PI / 2), Math.cos(a + Math.PI / 2))) < SCREEN_GAP) continue;
+    const off = Math.atan2(Math.sin(a + Math.PI / 2), Math.cos(a + Math.PI / 2)); // >0: bên phải màn hình
+    if (off > -GAP_LEFT && off < GAP_RIGHT) continue;
     const torch = createTorch();
     torch.group.position.set(Math.cos(a) * (wallR + 0.3), 6.4, Math.sin(a) * (wallR + 0.3));
     torch.group.lookAt(0, 6.4, 0);
@@ -149,6 +157,109 @@ function buildCave(scene) {
   }
 
   return { fire, torches };
+}
+
+/** Bảng "Kết quả gần đây" đặt cạnh màn hình lớn. Trả về setResults(matches). */
+function buildResultsBoard(scene) {
+  const group = new THREE.Group();
+  group.position.set(RESULTS_POS.x, 0, RESULTS_POS.z);
+  group.lookAt(0, 0, 0);
+  scene.add(group);
+
+  const bottom = 1.2;
+  const frame = new THREE.Mesh(
+    new THREE.BoxGeometry(RESULTS_W + 0.5, RESULTS_H + 0.5, 0.35),
+    new THREE.MeshStandardMaterial({ color: '#1b1210', roughness: 0.6 }),
+  );
+  frame.position.set(0, bottom + RESULTS_H / 2, -0.25);
+  group.add(frame);
+  // Hai chân đỡ.
+  for (const sx of [-1, 1]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.3, bottom + 0.2, 0.3), frame.material);
+    leg.position.set(sx * (RESULTS_W / 2 - 0.4), (bottom + 0.2) / 2, -0.25);
+    group.add(leg);
+  }
+
+  const tex = textCanvas(1024, 1280, (g, w, h) => drawResults(g, w, h, null));
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(RESULTS_W, RESULTS_H), new THREE.MeshBasicMaterial({ map: tex, fog: false }));
+  board.position.set(0, bottom + RESULTS_H / 2, -0.05);
+  group.add(board);
+
+  return {
+    async setResults(matches) {
+      await canvasFontsReady();
+      drawResults(tex.image.getContext('2d'), tex.image.width, tex.image.height, matches);
+      tex.needsUpdate = true;
+    },
+  };
+}
+
+/** 10 trận đã đá gần nhất, mới nhất ở trên. matches = null: đang tải. */
+function drawResults(g, w, h, matches) {
+  g.fillStyle = '#0f1426';
+  g.fillRect(0, 0, w, h);
+  g.fillStyle = BRAND.jersey.body;
+  g.fillRect(0, 0, w, 110);
+  g.fillStyle = BRAND.jersey.trim;
+  g.fillRect(0, 110, w, 6);
+  g.textBaseline = 'middle';
+  g.textAlign = 'left';
+  g.fillStyle = '#fff';
+  g.font = '800 56px Bitter, Georgia, serif';
+  g.fillText('📊 KẾT QUẢ GẦN ĐÂY', 32, 58);
+
+  if (!matches?.length) {
+    g.textAlign = 'center';
+    g.font = '600 44px "Be Vietnam Pro", sans-serif';
+    g.fillStyle = '#c9d3ee';
+    g.fillText(matches ? 'Chưa có kết quả' : 'Đang tải kết quả…', w / 2, h / 2);
+    return;
+  }
+
+  const top = 126;
+  const rows = 10;
+  const rowH = (h - top - 8) / rows;
+  const mid = w / 2;
+  matches.slice(0, rows).forEach((m, i) => {
+    const y = top + i * rowH;
+    if (i % 2 === 0) {
+      g.fillStyle = 'rgba(255, 255, 255, 0.04)';
+      g.fillRect(12, y + 3, w - 24, rowH - 6);
+    }
+    // Dòng nhỏ: ngày · giải · luân lưu.
+    const pens = /pen/i.test(m.detail) ? ' · có đá luân lưu' : '';
+    g.textAlign = 'center';
+    g.font = '500 26px "Be Vietnam Pro", sans-serif';
+    g.fillStyle = '#7d8bb0';
+    g.fillText(`${formatDay(m.date)} · ${shortLeague(m.league)}${pens}`, mid, y + 28);
+
+    const hs = Number(m.homeScore);
+    const as = Number(m.awayScore);
+    const cy = y + rowH * 0.64;
+    const team = (name, x, align, won) => {
+      g.textAlign = align;
+      const ours = OUR_TEAMS.has(name);
+      g.font = `${ours ? 700 : 500} ${ours ? 40 : 38}px "Be Vietnam Pro", sans-serif`;
+      g.fillStyle = ours ? '#ffffff' : '#c9d3ee';
+      g.globalAlpha = won === false ? 0.65 : 1;
+      g.fillText(name, x, cy);
+      g.globalAlpha = 1;
+    };
+    team(m.home, mid - 90, 'right', hs === as ? null : hs > as);
+    team(m.away, mid + 90, 'left', hs === as ? null : as > hs);
+    // Ô tỉ số.
+    g.fillStyle = BRAND.jersey.trim;
+    g.fillRect(mid - 74, cy - 28, 148, 56);
+    g.fillStyle = '#1b1b1b';
+    g.textAlign = 'center';
+    g.font = '800 42px Bitter, Georgia, serif';
+    g.fillText(`${m.homeScore} - ${m.awayScore}`, mid, cy + 2);
+  });
+}
+
+function formatDay(iso) {
+  const p = Object.fromEntries(VN_TIME.formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+  return `${p.weekday} ${p.day}/${p.month}`;
 }
 
 // Font chỉ dùng trên canvas chưa được trình duyệt tải (kể cả bộ chữ tiếng Việt): tải trước rồi mới vẽ.
@@ -871,13 +982,15 @@ export function mountCave(app, { profile, onLeave }) {
       hud.videoBtn.textContent = '▶ Xem video trên YouTube';
     },
   });
+  const resultsBoard = buildResultsBoard(scene);
+  const getMatches = (url) =>
+    fetch(url)
+      .then((r) => r.json())
+      .then((j) => j.matches ?? [])
+      .catch(() => []);
   async function refreshFixtures() {
-    try {
-      const j = await fetch('/api/fixtures').then((r) => r.json());
-      screen.setFixtures(j.matches ?? []);
-    } catch {
-      screen.setFixtures([]);
-    }
+    getMatches('/api/fixtures').then(screen.setFixtures);
+    getMatches('/api/results').then(resultsBoard.setResults);
   }
   refreshFixtures();
   const fixtureTimer = setInterval(refreshFixtures, 30 * 60 * 1000);

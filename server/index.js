@@ -56,38 +56,51 @@ const FIXTURE_TTL_MS = 30 * 60 * 1000;
 const FIXTURE_LIMIT = 10;
 let fixtureCache = { at: 0, matches: [] };
 let fixtureLoading = null;
+let resultCache = { at: 0, matches: [] };
+let resultLoading = null;
 
-async function fetchTeamFixtures(espnId) {
-  const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/all/teams/${espnId}/schedule?fixture=true`;
+// fixture=true: các trận sắp đá; bỏ tham số: các trận đã đá (có tỉ số).
+async function fetchTeamSchedule(espnId, upcoming) {
+  const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/all/teams/${espnId}/schedule${upcoming ? '?fixture=true' : ''}`;
   const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
   if (!r.ok) throw new Error(`ESPN ${espnId}: ${r.status}`);
   const j = await r.json();
   return (j.events ?? []).map((e) => {
     const c = e.competitions?.[0];
-    const side = (h) => c?.competitors?.find((t) => t.homeAway === h)?.team ?? {};
+    const side = (h) => c?.competitors?.find((t) => t.homeAway === h) ?? {};
     return {
       id: e.id,
       date: e.date,
       state: c?.status?.type?.state,
+      detail: c?.status?.type?.shortDetail ?? '',
       league: e.league?.abbreviation ?? e.league?.name ?? '',
-      home: side('home').shortDisplayName ?? '?',
-      away: side('away').shortDisplayName ?? '?',
+      home: side('home').team?.shortDisplayName ?? '?',
+      away: side('away').team?.shortDisplayName ?? '?',
+      homeScore: side('home').score?.displayValue ?? null,
+      awayScore: side('away').score?.displayValue ?? null,
     };
   });
+}
+
+// Gộp lịch của các đội theo dõi (bỏ trùng khi 2 đội gặp nhau), lọc + sắp xếp bằng `pick`.
+async function mergeTeams(upcoming, pick) {
+  const lists = await Promise.allSettled(FIXTURE_TEAMS.map((t) => fetchTeamSchedule(t.espnId, upcoming)));
+  const byId = new Map();
+  for (const l of lists) if (l.status === 'fulfilled') for (const m of l.value) byId.set(m.id, m);
+  return pick([...byId.values()]);
 }
 
 async function loadFixtures() {
   if (Date.now() - fixtureCache.at < FIXTURE_TTL_MS) return fixtureCache.matches;
   fixtureLoading ??= (async () => {
     try {
-      const lists = await Promise.allSettled(FIXTURE_TEAMS.map((t) => fetchTeamFixtures(t.espnId)));
-      const byId = new Map();
-      for (const l of lists) if (l.status === 'fulfilled') for (const m of l.value) byId.set(m.id, m);
       const now = Date.now();
-      const matches = [...byId.values()]
-        .filter((m) => m.state === 'pre' && Date.parse(m.date) > now)
-        .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
-        .slice(0, FIXTURE_LIMIT);
+      const matches = await mergeTeams(true, (all) =>
+        all
+          .filter((m) => m.state === 'pre' && Date.parse(m.date) > now)
+          .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
+          .slice(0, FIXTURE_LIMIT),
+      );
       if (matches.length) fixtureCache = { at: Date.now(), matches };
     } catch (err) {
       console.warn('fixtures:', err.message);
@@ -99,9 +112,32 @@ async function loadFixtures() {
   return fixtureLoading;
 }
 
+async function loadResults() {
+  if (Date.now() - resultCache.at < FIXTURE_TTL_MS) return resultCache.matches;
+  resultLoading ??= (async () => {
+    try {
+      const matches = await mergeTeams(false, (all) =>
+        all
+          // Bỏ giao hữu: chỉ trận chính thức mới đáng treo bảng.
+          .filter((m) => m.state === 'post' && m.homeScore != null && !/friendly/i.test(m.league))
+          .sort((a, b) => Date.parse(b.date) - Date.parse(a.date))
+          .slice(0, FIXTURE_LIMIT),
+      );
+      if (matches.length) resultCache = { at: Date.now(), matches };
+    } catch (err) {
+      console.warn('results:', err.message);
+    } finally {
+      resultLoading = null;
+    }
+    return resultCache.matches;
+  })();
+  return resultLoading;
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.url.startsWith('/api/stats')) return json(res, 200, { online: players.size });
   if (req.url.startsWith('/api/fixtures')) return json(res, 200, { matches: await loadFixtures() });
+  if (req.url.startsWith('/api/results')) return json(res, 200, { matches: await loadResults() });
   serveStatic(req, res);
 });
 
