@@ -1,5 +1,5 @@
 import { ARENA, BALL } from '../src/config.js';
-import { kickSpeed, settle, spinOf, turn } from '../src/ballPhysics.js';
+import { advance, kickGroundSpeed, loftVy, settle, spinOf } from '../src/ballPhysics.js';
 
 // Quả bóng chung: server giữ vị trí thật, chạy vật lý 2D (mặt sàn) mỗi nhịp tick.
 // Người chơi đi chạm vào bóng thì rê bóng; giữ nút sút để lấy lực, nhả ra thì bóng đi theo hướng ngắm.
@@ -13,7 +13,10 @@ const GOAL_BACK = BALL.goalLineX + BALL.goalDepth; // |x| của lưới sau
 const SCREEN_LINE = ARENA.screenZ + 0.45;
 
 export function createBall({ onGoal } = {}) {
-  const ball = { x: BALL.start.x, z: BALL.start.z, vx: 0, vz: 0, spin: 0 };
+  const ball = { x: BALL.start.x, z: BALL.start.z, y: 0, vx: 0, vz: 0, vy: 0, spin: 0 };
+  // Bóng vào lòng khung thành có hợp lệ không: chỉ khi đi qua vạch vôi dưới xà ngang. Bóng bay qua xà
+  // hay rơi vào từ nóc / sau lưới thì không tính.
+  let lowEntry = false;
   let lastTouchId = null;
   let goalUntil = 0; // sau khi ghi bàn: bóng nằm trong lưới một lúc rồi mới về chỗ cũ
   const score = { west: 0, east: 0 }; // west: khung -x, east: khung +x
@@ -23,6 +26,8 @@ export function createBall({ onGoal } = {}) {
     ball.z = BALL.start.z;
     ball.vx = 0;
     ball.vz = 0;
+    ball.y = 0;
+    ball.vy = 0;
     ball.spin = 0;
     goalUntil = 0;
   }
@@ -30,6 +35,12 @@ export function createBall({ onGoal } = {}) {
   // Bóng đang nằm trong lòng khung thành (sau vạch vôi, giữa hai cột dọc, trước lưới sau).
   const inGoalMouth = () =>
     Math.abs(ball.x) > BALL.goalLineX && Math.abs(ball.x) < GOAL_BACK && Math.abs(ball.z) < BALL.goalHalfWidth;
+  const underBar = () => ball.y < BALL.goalHeight - BALL.radius;
+
+  function trackEntry() {
+    if (Math.abs(ball.x) <= BALL.goalLineX) lowEntry = underBar();
+    else if (!inGoalMouth()) lowEntry = false;
+  }
 
   // Nảy vào vật tròn (cột dọc khung thành).
   function bouncePost(px, pz) {
@@ -74,7 +85,8 @@ export function createBall({ onGoal } = {}) {
   function collide() {
     const R = BALL.radius;
     const gw = BALL.goalHalfWidth;
-    for (const sx of [-1, 1]) {
+    // Khung thành chỉ cao tới xà ngang: bóng bay cao hơn thì đi qua trên cột và lưới.
+    if (ball.y < BALL.goalHeight) for (const sx of [-1, 1]) {
       for (const sz of [-1, 1]) {
         bouncePost(sx * BALL.goalLineX, sz * gw);
         bounceSegment(sx * BALL.goalLineX, sz * gw, sx * GOAL_BACK, sz * gw, NET_BOUNCE); // lưới bên
@@ -109,7 +121,7 @@ export function createBall({ onGoal } = {}) {
       }
     } else {
       for (const p of players) {
-        if (p.ghostUntil) continue; // ma đi xuyên bóng
+        if (p.ghostUntil || ball.y > BALL.reachHeight) continue; // ma đi xuyên bóng; bóng bổng bay qua đầu
         const dx = ball.x - p.x;
         const dz = ball.z - p.z;
         const d = Math.hypot(dx, dz);
@@ -142,14 +154,20 @@ export function createBall({ onGoal } = {}) {
     // Sút mạnh đi xa mỗi nhịp: chia nhỏ bước để khỏi xuyên qua cột dọc.
     const n = Math.max(1, Math.ceil((Math.hypot(ball.vx, ball.vz) * dt) / 0.3));
     for (let i = 0; i < n; i++) {
-      if (ball.spin) turn(ball, dt / n); // bóng xoáy: đường bay cong dần
-      ball.x += (ball.vx * dt) / n;
-      ball.z += (ball.vz * dt) / n;
+      const wasAbsX = Math.abs(ball.x);
+      advance(ball, dt / n); // xoáy bẻ cong, bổng thì bay theo trọng lực
+      // Dội xà ngang: bóng đi qua vạch vôi đúng tầm xà.
+      if (wasAbsX <= BALL.goalLineX && Math.abs(ball.x) > BALL.goalLineX && Math.abs(ball.z) < BALL.goalHalfWidth &&
+        Math.abs(ball.y - BALL.goalHeight) < BALL.radius) {
+        ball.x = Math.sign(ball.x) * (BALL.goalLineX - 0.01);
+        ball.vx *= -0.6;
+      }
       collide();
+      trackEntry();
     }
     settle(ball, dt);
 
-    if (!goalUntil && inGoalMouth()) {
+    if (!goalUntil && inGoalMouth() && lowEntry) {
       const side = ball.x > 0 ? 'east' : 'west';
       score[side] += 1;
       goalUntil = now + 2500;
@@ -160,10 +178,10 @@ export function createBall({ onGoal } = {}) {
   /**
    * Người chơi sút: chỉ tính khi đứng đủ gần bóng. power 0..1 (giữ nút lâu thì mạnh),
    * aim là hướng ngắm {x, z} từ máy khách; thiếu thì theo hướng đang chạy. curve -1..1: xoáy
-   * cong sang trái/phải. Trả về true nếu sút được.
+   * cong sang trái/phải; loft 0..1: sệt → bổng. Trả về true nếu sút được.
    */
-  function kick(p, power = 1, aim = null, curve = 0) {
-    if (goalUntil || p.ghostUntil) return false;
+  function kick(p, power = 1, aim = null, curve = 0, loft = 0) {
+    if (goalUntil || p.ghostUntil || ball.y > BALL.reachHeight) return false;
     const dx = ball.x - p.x;
     const dz = ball.z - p.z;
     const d = Math.hypot(dx, dz);
@@ -188,9 +206,11 @@ export function createBall({ onGoal } = {}) {
       nz = Math.cos(p.ry);
       len = 1;
     }
-    const speed = kickSpeed(power);
+    const speed = kickGroundSpeed(power, loft);
     ball.vx = (nx / len) * speed;
     ball.vz = (nz / len) * speed;
+    ball.vy = loftVy(loft);
+    if (ball.vy > 0) ball.y = Math.max(ball.y, 0.01);
     ball.spin = spinOf(curve);
     lastTouchId = p.id;
     return true;
@@ -203,7 +223,9 @@ export function createBall({ onGoal } = {}) {
     get score() {
       return { ...score };
     },
-    /** Gói gọn để gửi kèm tin `state`: [x, z, vx, vz]. */
-    snapshot: () => [+ball.x.toFixed(2), +ball.z.toFixed(2), +ball.vx.toFixed(2), +ball.vz.toFixed(2)],
+    /** Gói gọn để gửi kèm tin `state`: [x, z, vx, vz, y, vy]. */
+    snapshot: () => [
+      +ball.x.toFixed(2), +ball.z.toFixed(2), +ball.vx.toFixed(2), +ball.vz.toFixed(2), +ball.y.toFixed(2), +ball.vy.toFixed(2),
+    ],
   };
 }

@@ -57,6 +57,13 @@ export const BALL = {
   kickMax: 44, // giữ đủ lực
   curveRate: 0.035, // độ cong tối đa của đường bóng xoáy (= 1 / bán kính vòng cung)
   spinDecay: 0.3, // xoáy tắt dần theo thời gian
+  // Sệt / bổng: độ bổng 0..1 quyết định vận tốc bay lên; bóng bổng đi chậm ngang hơn chút.
+  loftVy: 11, // bổng tối đa: bay lên 11 m/s (đỉnh ~3.4m, cao hơn xà 2.3m)
+  loftSlow: 0.5, // bổng tối đa thì tốc độ ngang giảm một nửa (kiểu lốp bóng)
+  gravity: 18,
+  airDrag: 0.25, // trên không ma sát nhỏ hơn hẳn lăn trên cỏ
+  groundBounce: 0.45, // rơi xuống nảy lại bao nhiêu phần
+  reachHeight: 1.1, // bóng cao hơn mức này thì người không rê / sút được (bay qua đầu)
   chargeMs: 900, // thời gian giữ để đầy lực
   kickRange: 2.2,
   // Hai khung thành ở hai đầu sân (±x); vạch vôi ở |x| = goalLineX (= PITCH.halfLength).

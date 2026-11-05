@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BALL } from './config.js';
-import { kickSpeed, settle, spinOf, turn } from './ballPhysics.js';
+import { advance, kickGroundSpeed, loftVy, settle, spinOf } from './ballPhysics.js';
 import { textCanvas } from './scenery.js';
 
 // Hiển thị quả bóng chung và hai khung thành. Vị trí thật do server quyết định (server/ball.js);
@@ -160,6 +160,8 @@ export function createBallView(scene, { fontsReady } = {}) {
   // Trạng thái nhận từ server + thời điểm nhận, để ngoại suy giữa hai nhịp.
   const target = new THREE.Vector3(BALL.start.x, 0, BALL.start.z);
   const vel = new THREE.Vector3();
+  let height = 0; // độ cao bóng (bóng bổng) theo server, kèm vận tốc bay lên
+  let vy = 0;
   let recvAt = performance.now();
   const shown = new THREE.Vector3(BALL.start.x, 0, BALL.start.z);
   const prev = shown.clone();
@@ -171,11 +173,13 @@ export function createBallView(scene, { fontsReady } = {}) {
     get position() {
       return shown;
     },
-    /** b = [x, z, vx, vz] từ tin `state`. */
+    /** b = [x, z, vx, vz, y, vy] từ tin `state` (server cũ không gửi y, vy). */
     setState(b) {
       if (!b) return;
       target.set(b[0], 0, b[1]);
       vel.set(b[2], 0, b[3]);
+      height = b[4] ?? 0;
+      vy = b[5] ?? 0;
       recvAt = performance.now();
     },
     setScore(score) {
@@ -200,6 +204,9 @@ export function createBallView(scene, { fontsReady } = {}) {
       prev.copy(shown);
       shown.x += (px - shown.x) * k;
       shown.z += (pz - shown.z) * k;
+      // Độ cao: đoán trước theo trọng lực (rơi nhanh nên không làm mượt, chỉ chặn dưới mặt cỏ).
+      const py = height > 0 || vy > 0 ? Math.max(0, height + vy * ahead - 0.5 * BALL.gravity * ahead * ahead) : 0;
+      shown.y += (py - shown.y) * Math.min(1, k * 2);
       // Lăn tròn theo quãng đường đi được.
       const dx = shown.x - prev.x;
       const dz = shown.z - prev.z;
@@ -210,8 +217,12 @@ export function createBallView(scene, { fontsReady } = {}) {
         mesh.quaternion.premultiply(q);
       }
       bounce = Math.max(0, bounce - dt);
-      mesh.position.set(shown.x, BALL.radius + Math.sin((bounce / 0.25) * Math.PI) * 0.35, shown.z);
+      mesh.position.set(shown.x, BALL.radius + shown.y + Math.sin((bounce / 0.25) * Math.PI) * 0.35, shown.z);
       shadow.position.set(shown.x, 0.02, shown.z);
+      // Bóng càng cao bóng đổ càng nhỏ, càng nhạt.
+      const lift = Math.min(1, shown.y / 3);
+      shadow.scale.setScalar(1 - lift * 0.5);
+      shadow.material.opacity = 0.35 * (1 - lift * 0.6);
     },
   };
 }
@@ -243,8 +254,7 @@ export function createAimArrow(scene) {
 
   // Chấm đường bay: chạy thử vật lý thật của bóng (không tính va chạm) trong một khoảng thời gian.
   const DOTS = 28;
-  const dotGeo = new THREE.CircleGeometry(0.14, 10);
-  dotGeo.rotateX(-Math.PI / 2);
+  const dotGeo = new THREE.SphereGeometry(0.15, 8, 6); // chấm cầu: nhìn góc nào cũng thấy, kể cả khi bay cao
   const dotMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, depthWrite: false });
   const dots = new THREE.InstancedMesh(dotGeo, dotMat, DOTS);
   dots.renderOrder = 2;
@@ -252,11 +262,11 @@ export function createAimArrow(scene) {
   dots.visible = false;
   scene.add(dots);
   const m4 = new THREE.Matrix4();
-  const fly = { vx: 0, vz: 0, spin: 0 };
+  const fly = { x: 0, z: 0, y: 0, vx: 0, vz: 0, vy: 0, spin: 0 };
 
   const color = new THREE.Color();
   return {
-    show(pos, dir, power, curve = 0) {
+    show(pos, dir, power, curve = 0, loft = 0) {
       mesh.visible = !!pos;
       const charging = !!pos && power >= 0;
       dots.visible = charging;
@@ -269,23 +279,20 @@ export function createAimArrow(scene) {
       mat.color.copy(charging ? color.setHSL((120 - power * 120) / 360, 0.85, 0.55) : color.set('#ffffff'));
       if (!charging) return;
       dotMat.color.copy(mat.color);
-      // Dự đoán 0.35s → 1.1s đường bay tuỳ lực, chia đều cho các chấm.
-      const speed = kickSpeed(power);
-      Object.assign(fly, { vx: dir.x * speed, vz: dir.z * speed, spin: spinOf(curve) });
-      const span = 0.35 + power * 0.75;
+      // Dự đoán đường bay tuỳ lực (bóng bổng thì vẽ trọn một vòng cung tới chỗ chạm cỏ), chia đều cho các chấm.
+      const speed = kickGroundSpeed(power, loft);
+      const up = loftVy(loft);
+      Object.assign(fly, { x: pos.x, z: pos.z, y: up > 0 ? 0.01 : 0, vx: dir.x * speed, vz: dir.z * speed, vy: up, spin: spinOf(curve) });
+      const span = Math.max(0.35 + power * 0.75, (2 * up) / BALL.gravity);
       const sub = 4;
       const dt = span / DOTS / sub;
-      let x = pos.x;
-      let z = pos.z;
       for (let i = 0; i < DOTS; i++) {
         for (let k = 0; k < sub; k++) {
-          turn(fly, dt);
-          x += fly.vx * dt;
-          z += fly.vz * dt;
+          advance(fly, dt);
           settle(fly, dt);
         }
         const s = 1 - (i / DOTS) * 0.6; // chấm nhỏ dần về cuối
-        m4.makeScale(s, 1, s).setPosition(x, 0.05, z);
+        m4.makeScale(s, s, s).setPosition(fly.x, fly.y > 0 ? BALL.radius + fly.y : 0.1, fly.z);
         dots.setMatrixAt(i, m4);
       }
       dots.instanceMatrix.needsUpdate = true;
