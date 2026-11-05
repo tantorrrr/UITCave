@@ -39,11 +39,10 @@ export const ARENA = {
   knockSpeed: 9, // tốc độ bật lùi lúc bị đấm
 };
 
-// Sân bóng mini giữa hang: dài theo trục x, khung thành ở hai đầu (±x). Bóng nảy vào vách biên.
+// Sân bóng mini giữa hang: dài theo trục x, khung thành ở hai đầu (±x). Không có vách biên: bóng lăn khắp hang.
 export const PITCH = {
   halfLength: 13,
   halfWidth: 7,
-  boardHeight: 0.45,
 };
 
 // Quả bóng chung trong hang (server quyết định vị trí). enabled: false để tắt hẳn.
@@ -63,7 +62,6 @@ export const BALL = {
   goalHalfWidth: 2.2,
   goalDepth: 1.6,
   goalHeight: 2.3,
-  idleResetMs: 25000, // không ai chạm thì bóng tự về chỗ cũ
 };
 
 export const POLL = {

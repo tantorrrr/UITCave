@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { BALL, BRAND, PITCH } from './config.js';
+import { PITCH } from './config.js';
 import { textCanvas } from './scenery.js';
 
-// Sân bóng mini giữa hang: mặt cỏ kẻ vạch, vách biên thấp (bóng nảy lại, người bước qua được),
+// Sân bóng mini giữa hang: mặt cỏ kẻ vạch, không có vách biên (bóng lăn tự do khắp hang),
 // bốn cột đèn sân thay cho ánh lửa trước đây.
 
 const L = PITCH.halfLength * 2;
@@ -53,24 +53,6 @@ function turfTexture() {
   });
 }
 
-/** Vách biên: chữ thương hiệu lặp lại như bảng quảng cáo sân bóng. */
-function boardTexture(length) {
-  const tex = textCanvas(512, 64, (g, w, h) => {
-    g.fillStyle = BRAND.jersey.body;
-    g.fillRect(0, 0, w, h);
-    g.fillStyle = BRAND.jersey.trim;
-    g.fillRect(0, h - 6, w, 6);
-    g.fillStyle = '#ffffff';
-    g.font = '800 34px Bitter, Georgia, serif';
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    g.fillText(`${BRAND.signMain} · VÀO HANG`, w / 2, h / 2);
-  });
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.repeat.set(Math.max(1, Math.round(length / 6)), 1);
-  return tex;
-}
-
 export function createPitch(scene) {
   const group = new THREE.Group();
   scene.add(group);
@@ -94,31 +76,8 @@ export function createPitch(scene) {
   apron.receiveShadow = true;
   group.add(apron);
 
-  // Vách biên thấp; hai đầu sân chừa lòng khung thành.
-  const H = PITCH.boardHeight;
-  const T = 0.12;
-  const edgeMat = new THREE.MeshStandardMaterial({ color: '#16316e' });
-  const board = (len, x, z, rotY) => {
-    const tex = boardTexture(len);
-    const face = new THREE.MeshStandardMaterial({ map: tex, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0.25 });
-    // Thứ tự mặt hộp: +x, -x, +y, -y, +z, -z; hai mặt dài in chữ.
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(len, H, T), [edgeMat, edgeMat, edgeMat, edgeMat, face, face]);
-    mesh.position.set(x, H / 2, z);
-    mesh.rotation.y = rotY;
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    group.add(mesh);
-  };
   const hl = PITCH.halfLength;
   const hw = PITCH.halfWidth;
-  board(L, 0, hw + T / 2, Math.PI); // mặt có chữ quay vào trong sân
-  board(L, 0, -hw - T / 2, 0);
-  const endLen = hw - BALL.goalHalfWidth;
-  for (const sx of [-1, 1]) {
-    for (const sz of [-1, 1]) {
-      board(endLen, sx * (hl + T / 2), sz * (BALL.goalHalfWidth + endLen / 2), sx > 0 ? -Math.PI / 2 : Math.PI / 2);
-    }
-  }
 
   // Bốn cột đèn sân ở bốn góc, rọi vào giữa sân.
   const poleMat = new THREE.MeshStandardMaterial({ color: '#59606b', metalness: 0.5, roughness: 0.5 });
