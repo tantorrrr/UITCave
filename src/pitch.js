@@ -14,10 +14,10 @@ function turfTexture() {
   return textCanvas(L * S, W * S, (g, w, h) => {
     const stripes = 10;
     for (let i = 0; i < stripes; i++) {
-      g.fillStyle = i % 2 ? '#2f8a3b' : '#36993f';
+      g.fillStyle = i % 2 ? '#1d3f24' : '#214628'; // xanh tối, sọc nhẹ: không giành mắt với màn hình lớn
       g.fillRect((i * w) / stripes, 0, w / stripes + 1, h);
     }
-    g.strokeStyle = 'rgba(255,255,255,0.92)';
+    g.strokeStyle = 'rgba(225,230,215,0.42)';
     g.lineWidth = 0.12 * S;
     const m = 0.35 * S; // mép trong của vạch biên
     g.strokeRect(m, m, w - 2 * m, h - 2 * m);
@@ -29,7 +29,7 @@ function turfTexture() {
     g.beginPath();
     g.arc(w / 2, h / 2, 2.4 * S, 0, Math.PI * 2);
     g.stroke();
-    g.fillStyle = 'rgba(255,255,255,0.92)';
+    g.fillStyle = 'rgba(225,230,215,0.42)';
     g.beginPath();
     g.arc(w / 2, h / 2, 0.18 * S, 0, Math.PI * 2);
     g.fill();
@@ -81,7 +81,7 @@ export function createPitch(scene) {
 
   // Bốn cột đèn sân ở bốn góc, rọi vào giữa sân.
   const poleMat = new THREE.MeshStandardMaterial({ color: '#59606b', metalness: 0.5, roughness: 0.5 });
-  const lampMat = new THREE.MeshBasicMaterial({ color: '#fff7dd' });
+  const lampMat = new THREE.MeshBasicMaterial({ color: '#cbbf9a' });
   const lamps = [];
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
@@ -94,7 +94,7 @@ export function createPitch(scene) {
       head.position.set(x, 8.1, z);
       head.lookAt(0, 0, 0);
       group.add(head);
-      const light = new THREE.SpotLight('#fff3d6', 140, 34, Math.PI / 4.2, 0.45, 1.2);
+      const light = new THREE.SpotLight('#ffe2b8', 45, 34, Math.PI / 4.2, 0.45, 1.2);
       light.position.set(x, 8, z);
       light.target.position.set(-sx * 3, 0, -sz * 2);
       group.add(light, light.target);
@@ -102,7 +102,7 @@ export function createPitch(scene) {
     }
   }
   // Một nguồn sáng chính từ trên cao để nhân vật và bóng có bóng đổ (rẻ hơn bóng đổ từ 4 đèn).
-  const sun = new THREE.DirectionalLight('#fff1d8', 1.2);
+  const sun = new THREE.DirectionalLight('#ffe6c4', 0.75);
   sun.position.set(4, 16, 6);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
