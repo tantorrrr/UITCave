@@ -771,7 +771,7 @@ function createFanMusic({ onSong } = {}) {
   let player = null;
   let ready = null;
   let playing = false;
-  let volume = 35;
+  let volume = 60;
   // Không đặt display:none: một số trình duyệt không phát iframe bị ẩn hẳn.
   const host = el('div', { style: 'position:fixed;left:-10px;top:-10px;width:1px;height:1px;opacity:0;pointer-events:none' }, el('div'));
   document.body.append(host);
@@ -832,7 +832,7 @@ function createFanMusic({ onSong } = {}) {
       if (playing) next();
     },
     setVolume(v) {
-      volume = Math.round(v * 60); // nhạc nền nhỏ hơn hiệu ứng
+      volume = Math.round(v * 100); // thanh âm lượng mặc định 0.6 → 60/100
       player?.setVolume?.(volume);
     },
     dispose() {
@@ -911,16 +911,26 @@ function createConfetti(scene) {
 // HUD
 // ---------------------------------------------------------------------------
 
+/** Nút có biểu tượng + chữ; trên điện thoại CSS ẩn phần chữ để thanh trên cùng gọn một hàng. */
+function setLabel(btn, icon, text) {
+  btn.replaceChildren(el('span', { className: 'ico' }, icon), el('span', { className: 'lbl' }, ` ${text}`));
+  btn.title = text;
+}
+
 function buildHud(app, { onLeave }) {
   const kbd = (k) => el('span', { className: 'kbd' }, k);
 
-  const leave = el('button', { className: 'pill', type: 'button' }, 'Ra hang');
+  const leave = el('button', { className: 'pill', type: 'button' });
+  setLabel(leave, '🚪', 'Ra hang');
   const volume = el('input', { type: 'range', min: 0, max: 1, step: 0.05, value: 0.6, 'aria-label': 'Âm lượng' });
   const muteBtn = el('button', { className: 'pill', type: 'button', style: 'padding:6px 8px' }, '🔊');
-  const videoBtn = el('button', { className: 'pill', type: 'button' }, '📺 Tiếng video');
+  const videoBtn = el('button', { className: 'pill', type: 'button' });
+  setLabel(videoBtn, '📺', 'Tiếng video');
   const myHp = el('div', { className: 'pill my-hp', 'aria-label': 'Máu của bạn' });
-  const musicBtn = el('button', { className: 'pill', type: 'button' }, '🎵 Nhạc CĐV');
-  const top = el('div', { className: 'hud-top' }, leave, myHp, el('div', { className: 'pill vol' }, muteBtn, volume), videoBtn, musicBtn);
+  const musicBtn = el('button', { className: 'pill', type: 'button' });
+  setLabel(musicBtn, '🎵', 'Nhạc CĐV');
+  const musicNextBtn = el('button', { className: 'pill', type: 'button', title: 'Bài khác (N)', 'aria-label': 'Bài nhạc khác' }, '⏭');
+  const top = el('div', { className: 'hud-top' }, leave, myHp, el('div', { className: 'pill vol' }, muteBtn, volume), videoBtn, musicBtn, musicNextBtn);
   const ghostBanner = el('div', { className: 'ghost-banner' });
 
   const count = el('span', {}, '…');
@@ -930,10 +940,11 @@ function buildHud(app, { onLeave }) {
   const input = el('input', { placeholder: 'Nhấn Enter để nhắn tin…', maxLength: 200 });
   const hideChat = el('button', { className: 'pill', type: 'button' }, 'Ẩn');
   const chat = el('div', { className: 'chat' }, el('div', { className: 'chat-head' }, el('span', {}, 'Chat trong hang'), hideChat), log, input);
-  hideChat.addEventListener('click', () => {
-    chat.classList.toggle('collapsed');
-    hideChat.textContent = chat.classList.contains('collapsed') ? 'Hiện' : 'Ẩn';
-  });
+  const setChatOpen = (open) => {
+    chat.classList.toggle('collapsed', !open);
+    hideChat.textContent = open ? 'Ẩn' : '💬 Chat';
+  };
+  hideChat.addEventListener('click', () => setChatOpen(chat.classList.contains('collapsed')));
 
   // Bình chọn: mỗi trận sắp đá một cuộc; mũi tên chuyển trận, nút ℹ xem lại toàn bộ.
   const pollQ = el('div', { className: 'poll-q' });
@@ -949,6 +960,8 @@ function buildHud(app, { onLeave }) {
   prevBtn.addEventListener('click', () => nav.prev());
   nextBtn.addEventListener('click', () => nav.next());
   infoBtn.addEventListener('click', () => nav.info());
+  // Màn nhỏ: khung bình chọn thu gọn còn một dòng, chạm vào tiêu đề để mở/đóng nút chọn.
+  pollQ.addEventListener('click', () => poll.classList.toggle('folded'));
   function setPoll(p, index = 0, total = 1) {
     pollQ.textContent = `🗳️ ${p.question}`;
     const when = p.kickoff ? `${formatKickoff(p.kickoff)} · ${shortLeague(p.league)}` : '';
@@ -966,7 +979,7 @@ function buildHud(app, { onLeave }) {
   }
   setPoll({ question: POLL.question, options: POLL.options });
 
-  const celebrate = el('button', { className: 'btn-celebrate', type: 'button' }, '🎉 Ăn mừng', kbd('G'));
+  const celebrate = el('button', { className: 'btn-celebrate', type: 'button', title: 'Ăn mừng' }, el('span', { className: 'ico' }, '🎉'), el('span', { className: 'lbl' }, ' Ăn mừng'), kbd('G'));
   const keysBtn = el('button', { className: 'pill btn-keys', type: 'button' }, 'Phím (H)');
   const hint = el('div', { className: 'hint-bottom' }, 'Bấm vào cảnh để xoay bằng chuột');
   const toast = el('div', { className: 'toast' });
@@ -980,11 +993,14 @@ function buildHud(app, { onLeave }) {
   const isTouch = matchMedia('(pointer: coarse)').matches;
   const hud = el('div', { className: `hud${isTouch ? ' touch' : ''}` }, top, roomInfo, chat, poll, celebrate, keysBtn, hint, toast, punchHint, joystick, punchTouch, ghostBanner);
   app.append(hud);
-  if (isTouch) {
-    chat.classList.add('collapsed');
-    hideChat.textContent = 'Hiện';
-    hint.textContent = 'Vuốt màn hình để xoay góc nhìn';
+  // Điện thoại (kể cả xoay ngang) và màn hẹp: gọn tối đa để không che cảnh 3D.
+  const compact = isTouch || matchMedia('(max-width: 640px)').matches;
+  if (compact) {
+    hud.classList.add('compact');
+    setChatOpen(false);
+    poll.classList.add('folded');
   }
+  if (isTouch) hint.textContent = 'Vuốt màn hình để xoay góc nhìn';
 
   const joy = { x: 0, y: 0 };
   let joyPointer = null;
@@ -1082,7 +1098,7 @@ function buildHud(app, { onLeave }) {
   keysBtn.addEventListener('click', toggleHelp);
 
   return {
-    hud, input, log, volume, muteBtn, videoBtn, musicBtn, celebrate, punchHint, punchTouch, joy, isTouch,
+    hud, input, log, volume, muteBtn, videoBtn, musicBtn, musicNextBtn, celebrate, punchHint, punchTouch, joy, isTouch,
     get pollBtns() {
       return pollBtns;
     },
@@ -1091,7 +1107,7 @@ function buildHud(app, { onLeave }) {
       onVote = fn;
     },
     pollNav: nav,
-    setCount: (n) => (count.textContent = `${n} anh em trong hang`),
+    setCount: (n) => (count.textContent = compact ? `👥 ${n}` : `${n} anh em trong hang`),
     showToast, addChat, card, toggleHelp,
     setMyHp(hp, ghost) {
       myHp.textContent = ghost ? '👻 Ma' : '❤'.repeat(hp) + '♡'.repeat(MAX_HP - hp);
@@ -1137,7 +1153,7 @@ export function mountCave(app, { profile, onLeave }) {
   const screen = buildScreen(scene, css3dScene, {
     onVideoError() {
       videoBlocked = true;
-      hud.videoBtn.textContent = '▶ Xem video trên YouTube';
+      setLabel(hud.videoBtn, '▶', 'Xem video trên YouTube');
     },
   });
   const resultsBoard = buildResultsBoard(scene);
@@ -1436,7 +1452,7 @@ export function mountCave(app, { profile, onLeave }) {
     }
     videoMuted = !videoMuted;
     screen.setVideoMuted(videoMuted);
-    hud.videoBtn.textContent = videoMuted ? '📺 Tiếng video' : '📺 Tắt tiếng video';
+    setLabel(hud.videoBtn, '📺', videoMuted ? 'Tiếng video' : 'Tắt tiếng video');
     // Nghe tiếng video thì tạm dừng nhạc để khỏi chồng tiếng.
     if (!videoMuted && music.playing) stopMusic();
   }
@@ -1465,11 +1481,13 @@ export function mountCave(app, { profile, onLeave }) {
   music.setVolume(Number(hud.volume.value));
   function startMusic() {
     music.start();
-    hud.musicBtn.textContent = '🎵 Tắt nhạc';
+    setLabel(hud.musicBtn, '🎵', 'Tắt nhạc');
+    hud.musicBtn.classList.add('on');
   }
   function stopMusic() {
     music.stop();
-    hud.musicBtn.textContent = '🎵 Nhạc CĐV';
+    setLabel(hud.musicBtn, '🎵', 'Nhạc CĐV');
+    hud.musicBtn.classList.remove('on');
   }
   function toggleMusic() {
     if (music.playing) {
@@ -1482,14 +1500,20 @@ export function mountCave(app, { profile, onLeave }) {
     }
   }
   hud.musicBtn.addEventListener('click', toggleMusic);
+  hud.musicNextBtn.addEventListener('click', () => (music.playing ? music.next() : toggleMusic()));
   const onFirstGesture = (e) => {
     removeEventListener('pointerdown', onFirstGesture, true);
     removeEventListener('keydown', onFirstGesture, true);
-    if (e.target === hud.musicBtn) return; // nút nhạc tự xử lý
-    if (readPref() !== 'off' && videoMuted) startMusic();
+    if (e?.target === hud.musicBtn || e?.target === hud.musicNextBtn) return; // nút nhạc tự xử lý
+    if (readPref() !== 'off' && videoMuted && !music.playing) startMusic();
   };
-  addEventListener('pointerdown', onFirstGesture, true);
-  addEventListener('keydown', onFirstGesture, true);
+  // Người chơi thường đã bấm "Vào hang" ở màn chào: trang đã được phép phát tiếng, bật nhạc ngay.
+  // Chỉ khi vào thẳng bằng đường dẫn (chưa thao tác gì) mới phải chờ cú bấm/phím đầu tiên trong hang.
+  if (navigator.userActivation?.hasBeenActive) onFirstGesture();
+  else {
+    addEventListener('pointerdown', onFirstGesture, true);
+    addEventListener('keydown', onFirstGesture, true);
+  }
   function toggleMute() {
     const m = audio.toggleMute();
     hud.muteBtn.textContent = m ? '🔇' : '🔊';
@@ -1706,7 +1730,8 @@ export function mountCave(app, { profile, onLeave }) {
     }
 
     // Camera góc ba, kẹp trong lòng hang.
-    const dist = 6.5;
+    // Màn dọc hẹp: lùi máy quay để nhân vật không che màn hình lớn.
+    const dist = camera.aspect < 1 ? 8.5 : 6.5;
     camTarget.set(me.pos.x, 2.8, me.pos.z);
     camera.position.set(
       me.pos.x + Math.sin(camYaw) * Math.cos(camPitch) * dist,

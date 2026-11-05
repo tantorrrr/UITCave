@@ -483,17 +483,64 @@ html, body {
 .hud.touch .hint-bottom { bottom: max(4px, env(safe-area-inset-bottom)); font-size: 11px; }
 .stage canvas { touch-action: none; }
 
-@media (max-width: 640px) {
-  .hint-bottom { display: none; }
-  .hud-top { max-width: calc(100vw - 150px); }
-  .hud-top .vol input { display: none; }
-  /* Điện thoại: bình chọn và chat lên trên, chừa đáy cho cần gạt và nút đấm. */
-  .poll { top: 110px; bottom: auto; padding: 8px; }
-  .poll-q { font-size: 12px; margin-bottom: 6px; }
-  .poll-opts button { padding: 6px 2px; font-size: 12px; }
-  .chat { top: 206px; width: calc(100vw - 24px); max-height: 170px; }
-  .ghost-banner { top: auto; bottom: 180px; font-size: 13px; }
+/* ---------- Điện thoại / màn hẹp (.hud.compact): gọn tối đa, chừa cảnh 3D ở giữa ---------- */
+.poll.folded .poll-meta, .poll.folded .poll-opts { display: none; }
+.hud.compact .hint-bottom { display: none; }
+.hud.compact .pill { padding: 6px 9px; font-size: 12px; border-radius: 9px; }
+.hud.compact .hud-top { gap: 5px; flex-wrap: nowrap; max-width: calc(100vw - 112px); }
+.hud.compact .hud-top .lbl, .hud.compact .btn-celebrate .lbl, .hud.compact .btn-celebrate .kbd { display: none; }
+.hud.compact .hud-top .vol { padding: 6px 8px; }
+.hud.compact .hud-top .vol input { display: none; }
+.hud.compact .hud-top .musicon, .hud.compact .pill.on { border-color: var(--gold); }
+.hud.compact .my-hp { letter-spacing: 0; font-size: 10px; white-space: nowrap; padding: 7px 6px; }
+.hud.compact .hud-top .pill { padding: 6px 7px; }
+/* Tên phòng ẩn, chỉ giữ số người; dòng chữ nằm gọn trên một hàng ở góc phải. */
+.hud.compact .room-info b { display: none; }
+.hud.compact .room-info span { font-size: 11px; white-space: nowrap; }
+
+/* Bình chọn: một dòng ngay dưới thanh trên cùng; chạm tiêu đề để mở nút chọn. */
+.hud.compact .poll {
+  top: calc(max(12px, env(safe-area-inset-top)) + 44px);
+  bottom: auto;
+  padding: 6px 8px;
+  width: calc(100vw - 24px);
+  max-width: 420px;
 }
+.hud.compact .poll-q { font-size: 12px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hud.compact .poll-q::after { content: ' ▾'; opacity: 0.6; }
+.hud.compact .poll:not(.folded) .poll-q::after { content: ' ▴'; }
+.hud.compact .poll-meta { margin: 4px 0 6px; }
+.hud.compact .poll-opts button { padding: 6px 2px; font-size: 12px; }
+
+/* Chat: thu thành nút nhỏ ở góc trái, ngay trên cần gạt; mở ra thì lớn dần lên trên,
+   không đụng khung bình chọn (ở đầu màn) hay các nút bên phải. */
+.hud.compact .chat {
+  top: auto;
+  bottom: max(160px, calc(env(safe-area-inset-bottom) + 152px));
+  left: max(12px, env(safe-area-inset-left));
+  right: auto;
+  width: min(300px, calc(100vw - 110px));
+  max-height: 34vh;
+  padding: 8px;
+}
+.hud.compact .chat.collapsed { width: auto; padding: 0; background: none; border: 0; }
+.hud.compact .chat.collapsed .chat-head { margin: 0; }
+.hud.compact .chat.collapsed .chat-head > span { display: none; }
+
+.hud.compact .btn-celebrate {
+  width: 52px; height: 52px;
+  padding: 0;
+  display: grid; place-items: center;
+  font-size: 22px;
+}
+/* Cảm ứng: nút ăn mừng đứng trên nút đấm, cùng cột bên phải. */
+.hud.compact.touch .btn-celebrate {
+  right: max(32px, env(safe-area-inset-right));
+  bottom: max(176px, calc(env(safe-area-inset-bottom) + 168px));
+}
+.hud.compact .ghost-banner { top: auto; bottom: max(200px, calc(env(safe-area-inset-bottom) + 192px)); font-size: 13px; }
+.hud.compact .toast { font-size: 18px; top: 40%; white-space: normal; text-align: center; width: calc(100vw - 32px); }
+.hud.compact .card { padding: 16px; }
 
 @keyframes fade { from { opacity: 0; } }
 @keyframes pop { from { transform: scale(0.96); opacity: 0; } }

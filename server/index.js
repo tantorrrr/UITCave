@@ -227,8 +227,9 @@ function ghostLeft(p) {
   return p.ghostUntil ? Math.max(0, p.ghostUntil - Date.now()) : 0;
 }
 
+// Xuất hiện ở nửa hang đối diện màn hình lớn (phía +z, sau đống lửa) để vừa vào là thấy trọn màn hình.
 function spawnPoint() {
-  const angle = Math.random() * Math.PI * 2;
+  const angle = Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.7;
   const r = 9 + Math.random() * 4;
   return { x: Math.cos(angle) * r, z: Math.sin(angle) * r };
 }
