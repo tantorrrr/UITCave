@@ -766,6 +766,27 @@ function shortLeague(name) {
   return map[name] ?? name;
 }
 
+// --- Bàn phím với bộ gõ tiếng Việt ----------------------------------------------
+// Telex/VNI biến phím thành chữ có dấu (W → "ư", DD → "đ"…). Bộ gõ kiểu EVKey/Unikey gửi thẳng ký tự đó
+// vào trình duyệt nên e.code rỗng; bộ gõ IME của Windows thì e.key là "Process" nhưng e.code vẫn đúng.
+const VI_KEY = { 'ư': 'w', 'đ': 'd' };
+
+/** Sự kiện có mã phím vật lý thật (không phải ký tự do bộ gõ gửi). */
+function isPhysical(e) {
+  return !!e.code && e.code !== 'Unidentified';
+}
+
+/** Đổi sự kiện phím về mã phím vật lý ("KeyW", "Digit1"…), kể cả khi bộ gõ đã đổi thành chữ có dấu. */
+function keyCodeOf(e) {
+  if (isPhysical(e)) return e.code;
+  const raw = String(e.key ?? '').toLowerCase();
+  if (raw.length !== 1) return null; // Backspace, Process… không phải phím chữ
+  const ch = VI_KEY[raw] ?? raw.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (ch >= 'a' && ch <= 'z') return `Key${ch.toUpperCase()}`;
+  if (ch >= '0' && ch <= '9') return `Digit${ch}`;
+  return null;
+}
+
 /** setPointerCapture ném lỗi khi chuột đang bị khoá hoặc con trỏ đã nhả; bỏ qua được. */
 function capture(node, pointerId) {
   try {
@@ -1597,7 +1618,12 @@ export function mountCave(app, { profile, onLeave }) {
   });
 
   // --- Điều khiển -----------------------------------------------------------
+  // Phím đang giữ. `keys`: phím vật lý (có e.code). `softUntil`: phím do bộ gõ tiếng Việt (EVKey, Unikey…)
+  // gửi dạng ký tự, không có e.code và keyup tới ngay sau keydown, nên coi là giữ tới hạn rồi tự nhả.
   const keys = new Set();
+  const softUntil = new Map();
+  const SOFT_HOLD_MS = 550; // > độ trễ lặp phím của hệ điều hành (~500ms) để giữ phím không bị giật
+  const isHeld = (code) => keys.has(code) || (softUntil.get(code) ?? 0) > performance.now();
   let camYaw = 0;
   let camPitch = -0.25; // máy quay thấp, ngước lên để thấy trọn màn hình lớn và bảng lịch
   let dragging = false;
@@ -1663,15 +1689,26 @@ export function mountCave(app, { profile, onLeave }) {
   function onKeyDown(e) {
     if (e.target instanceof HTMLInputElement) return;
     audio.unlock();
-    const k = e.key.toLowerCase();
-    if (k === 'enter') {
+    if (e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter') {
       e.preventDefault();
       document.exitPointerLock?.();
       hud.input.focus();
       return;
     }
-    if (e.repeat) return;
-    keys.add(e.code);
+    const code = keyCodeOf(e);
+    if (!code) return;
+    if (isPhysical(e)) {
+      if (e.repeat) return;
+      keys.add(code);
+      softUntil.delete(code);
+    } else {
+      // Phím do bộ gõ tiếng Việt gửi (vd W → "ư"): không có keyup đáng tin, giữ trong một lúc,
+      // mỗi lần lặp phím lại gia hạn.
+      const wasHeld = isHeld(code);
+      softUntil.set(code, performance.now() + SOFT_HOLD_MS);
+      if (wasHeld) return; // lặp phím: không bấm phím tắt lần nữa
+    }
+    const k = code.startsWith('Key') ? code.slice(3).toLowerCase() : code.startsWith('Digit') ? code.slice(5) : '';
     if (k === 'f') doPunch();
     else if (k === 'g') doCelebrate();
     else if (k === 't') throwTomato();
@@ -1684,8 +1721,16 @@ export function mountCave(app, { profile, onLeave }) {
     else if (k === 'e') showPoll(sel + 1);
     else if (k === 'i') toggleInfo();
   }
-  const onKeyUp = (e) => keys.delete(e.code);
-  const onBlur = () => keys.clear();
+  const onKeyUp = (e) => {
+    // Chỉ tin keyup có mã phím vật lý; keyup của ký tự bộ gõ gửi tới ngay sau keydown nên bỏ qua.
+    if (!isPhysical(e)) return;
+    keys.delete(e.code);
+    softUntil.delete(e.code);
+  };
+  const onBlur = () => {
+    keys.clear();
+    softUntil.clear();
+  };
 
   canvas.addEventListener('pointerdown', (e) => {
     audio.unlock();
@@ -1762,8 +1807,8 @@ export function mountCave(app, { profile, onLeave }) {
     t += dt;
 
     // Di chuyển theo hướng camera.
-    const f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - hud.joy.y;
-    const s = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) + hud.joy.x;
+    const f = (isHeld('KeyW') || isHeld('ArrowUp') ? 1 : 0) - (isHeld('KeyS') || isHeld('ArrowDown') ? 1 : 0) - hud.joy.y;
+    const s = (isHeld('KeyD') || isHeld('ArrowRight') ? 1 : 0) - (isHeld('KeyA') || isHeld('ArrowLeft') ? 1 : 0) + hud.joy.x;
     move.set(0, 0, 0);
     // Cần gạt cho tốc độ theo độ đẩy; vùng chết nhỏ để khỏi trôi.
     const amount = Math.min(1, Math.hypot(f, s));
