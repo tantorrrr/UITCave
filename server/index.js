@@ -151,6 +151,8 @@ async function refreshPoll() {
         options: [`${next.home} thắng`, 'Hoà', `${next.away} thắng`],
         kickoff: next.date,
         league: next.league,
+        home: next.home,
+        away: next.away,
       }
     : { matchId, question: POLL.question, options: POLL.options, kickoff: null, league: '' };
   votes.clear();

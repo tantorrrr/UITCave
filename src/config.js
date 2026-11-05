@@ -79,13 +79,45 @@ export const FIXTURE_TEAMS = [
 ];
 
 // Chân dung treo tường. Có ảnh thì đặt vào public/images/legends/ và điền `img`.
+// Tranh vẽ cách điệu (màu CLB + số áo), không dùng ảnh chụp để tránh vướng bản quyền.
+export const CLUBS = {
+  liverpool: { name: 'Liverpool', colors: ['#c8102e', '#5e0715'], accent: '#f6eb61' },
+  manutd: { name: 'Man Utd', colors: ['#da291c', '#4a0a05'], accent: '#fbe122' },
+  mancity: { name: 'Man City', colors: ['#6cabdd', '#1c2c5b'], accent: '#ffffff' },
+  chelsea: { name: 'Chelsea', colors: ['#034694', '#011d40'], accent: '#dba111' },
+  arsenal: { name: 'Arsenal', colors: ['#ef0107', '#5c0002'], accent: '#ffffff' },
+};
+
+// Huyền thoại từ những năm 2000 tới gần đây; số áo là số gắn liền với họ ở CLB đó.
 export const LEGENDS = [
-  { name: 'Huyền thoại 1' },
-  { name: 'Huyền thoại 2' },
-  { name: 'Huyền thoại 3' },
-  { name: 'Huyền thoại 4' },
-  { name: 'Huyền thoại 5' },
-  { name: 'Huyền thoại 6' },
-  { name: 'Huyền thoại 7' },
-  { name: 'Huyền thoại 8' },
+  { name: 'Steven Gerrard', club: 'liverpool', number: 8, years: '1998–2015' },
+  { name: 'Jamie Carragher', club: 'liverpool', number: 23, years: '1996–2013' },
+  { name: 'Fernando Torres', club: 'liverpool', number: 9, years: '2007–2011' },
+  { name: 'Luis Suárez', club: 'liverpool', number: 7, years: '2011–2014' },
+  { name: 'Mohamed Salah', club: 'liverpool', number: 11, years: 'từ 2017' },
+  { name: 'Virgil van Dijk', club: 'liverpool', number: 4, years: 'từ 2018' },
+  { name: 'Cristiano Ronaldo', club: 'manutd', number: 7, years: '2003–2009' },
+  { name: 'Wayne Rooney', club: 'manutd', number: 10, years: '2004–2017' },
+  { name: 'Paul Scholes', club: 'manutd', number: 18, years: '1994–2013' },
+  { name: 'Ryan Giggs', club: 'manutd', number: 11, years: '1991–2014' },
+  { name: 'Rio Ferdinand', club: 'manutd', number: 5, years: '2002–2014' },
+  { name: 'Michael Carrick', club: 'manutd', number: 16, years: '2006–2018' },
+  { name: 'Sergio Agüero', club: 'mancity', number: 10, years: '2011–2021' },
+  { name: 'Vincent Kompany', club: 'mancity', number: 4, years: '2008–2019' },
+  { name: 'David Silva', club: 'mancity', number: 21, years: '2010–2020' },
+  { name: 'Yaya Touré', club: 'mancity', number: 42, years: '2010–2018' },
+  { name: 'Kevin De Bruyne', club: 'mancity', number: 17, years: '2015–2025' },
+  { name: 'Erling Haaland', club: 'mancity', number: 9, years: 'từ 2022' },
+  { name: 'Frank Lampard', club: 'chelsea', number: 8, years: '2001–2014' },
+  { name: 'John Terry', club: 'chelsea', number: 26, years: '1998–2017' },
+  { name: 'Didier Drogba', club: 'chelsea', number: 11, years: '2004–2015' },
+  { name: 'Petr Čech', club: 'chelsea', number: 1, years: '2004–2015' },
+  { name: 'Eden Hazard', club: 'chelsea', number: 10, years: '2012–2019' },
+  { name: "N'Golo Kanté", club: 'chelsea', number: 7, years: '2016–2023' },
+  { name: 'Thierry Henry', club: 'arsenal', number: 14, years: '1999–2012' },
+  { name: 'Dennis Bergkamp', club: 'arsenal', number: 10, years: '1995–2006' },
+  { name: 'Patrick Vieira', club: 'arsenal', number: 4, years: '1996–2005' },
+  { name: 'Robert Pirès', club: 'arsenal', number: 7, years: '2000–2006' },
+  { name: 'Sol Campbell', club: 'arsenal', number: 23, years: '2001–2010' },
+  { name: 'Bukayo Saka', club: 'arsenal', number: 7, years: 'từ 2018' },
 ];

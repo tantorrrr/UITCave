@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { CSS3DObject, CSS3DRenderer } from 'three/addons/renderers/CSS3DRenderer.js';
-import { BRAND, FIXTURE_TEAMS, LEGENDS, POLL, SCOREBOARD } from './config.js';
+import { BRAND, CLUBS, FIXTURE_TEAMS, LEGENDS, POLL, SCOREBOARD } from './config.js';
 import { createAvatar } from './avatar.js';
 import { createAudio } from './audio.js';
 import { connect } from './net.js';
@@ -17,7 +17,7 @@ const SEND_INTERVAL = 1 / 15;
 const SCREEN_Z = -17;
 const SCREEN_HALF_W = 9.6; // nửa bề ngang khung màn hình, để chặn người chơi đi xuyên
 const DOME_R = 27;
-const DOME_SY = 0.95; // vòm cao để chứa màn hình lớn và bảng lịch thi đấu
+const DOME_SY = 1.0; // vòm cao để chứa màn hình lớn và bảng lịch thi đấu
 const VN_TIME = new Intl.DateTimeFormat('vi-VN', {
   timeZone: 'Asia/Ho_Chi_Minh',
   weekday: 'short',
@@ -122,62 +122,109 @@ function buildCave(scene) {
   });
   const bannerMat = new THREE.MeshStandardMaterial({ map: bannerTex, side: THREE.DoubleSide, roughness: 0.8 });
 
-  const slots = LEGENDS.length;
-  // Chân dung xếp thành cung hai bên màn hình (bỏ trống phía màn hình và phía sau).
-  for (let i = 0; i < slots; i++) {
-    const side = i % 2 ? 1 : -1;
-    const idx = Math.floor(i / 2);
-    const a = -Math.PI / 2 + side * (0.62 + idx * 0.28);
-    addPoster(scene, LEGENDS[i], a, wallR);
-  }
+  // Phòng truyền thống: chân dung xếp kín vách từ hai mép màn hình vòng ra sau, nhóm theo CLB.
+  const SCREEN_GAP = 0.62; // nửa góc chừa cho màn hình (rad)
+  const start = -Math.PI / 2 + SCREEN_GAP;
+  const span = Math.PI * 2 - SCREEN_GAP * 2;
+  LEGENDS.forEach((legend, i) => {
+    const a = start + (span * (i + 0.5)) / LEGENDS.length;
+    addPoster(scene, legend, a, wallR);
+  });
+  // Đuốc và cờ treo cao phía trên hàng chân dung.
   for (let i = 0; i < 10; i++) {
     const a = (i / 10) * Math.PI * 2 + 0.31;
+    if (Math.abs(Math.atan2(Math.sin(a + Math.PI / 2), Math.cos(a + Math.PI / 2))) < SCREEN_GAP) continue;
     const torch = createTorch();
-    torch.group.position.set(Math.cos(a) * (wallR + 0.4), 3.2, Math.sin(a) * (wallR + 0.4));
-    torch.group.lookAt(0, 3.2, 0);
+    torch.group.position.set(Math.cos(a) * (wallR + 0.3), 6.4, Math.sin(a) * (wallR + 0.3));
+    torch.group.lookAt(0, 6.4, 0);
     scene.add(torch.group);
     torches.push(torch);
 
-    const banner = new THREE.Mesh(new THREE.PlaneGeometry(1, 2), bannerMat);
+    const banner = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 2.4), bannerMat);
     const b = a + 0.31;
-    banner.position.set(Math.cos(b) * (wallR + 0.6), 5.2, Math.sin(b) * (wallR + 0.6));
-    banner.lookAt(0, 5.2, 0);
+    banner.position.set(Math.cos(b) * (wallR + 0.5), 7.8, Math.sin(b) * (wallR + 0.5));
+    banner.lookAt(0, 7.8, 0);
     scene.add(banner);
   }
 
   return { fire, torches };
 }
 
+// Font chỉ dùng trên canvas chưa được trình duyệt tải (kể cả bộ chữ tiếng Việt): tải trước rồi mới vẽ.
+let fontsPromise = null;
+function canvasFontsReady() {
+  fontsPromise ??= Promise.all(
+    ['800 58px Bitter', '700 42px "Be Vietnam Pro"', '600 34px "Be Vietnam Pro"', '500 34px "Be Vietnam Pro"'].map((f) =>
+      document.fonts.load(f, 'LỊCH THI ĐẤU Việt Agüero Čech').catch(() => {}),
+    ),
+  );
+  return fontsPromise;
+}
+
 function addPoster(scene, legend, angle, r) {
-  const tex = textCanvas(256, 340, (g, w, h) => {
-    g.fillStyle = '#20160f';
-    g.fillRect(0, 0, w, h);
+  const club = CLUBS[legend.club] ?? { name: '', colors: [BRAND.jersey.body, '#0d1a44'], accent: '#fff' };
+  const draw = (g, w, h) => {
     const grad = g.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, BRAND.jersey.body);
-    grad.addColorStop(1, '#0d1a44');
+    grad.addColorStop(0, club.colors[0]);
+    grad.addColorStop(1, club.colors[1]);
     g.fillStyle = grad;
-    g.fillRect(12, 12, w - 24, h - 70);
-    // Bóng người
-    g.fillStyle = 'rgba(255,255,255,0.18)';
-    g.beginPath();
-    g.arc(w / 2, 110, 46, 0, Math.PI * 2);
-    g.fill();
-    g.fillRect(w / 2 - 70, 165, 140, 110);
-    g.fillStyle = '#f5efe6';
-    g.font = '700 22px Bitter, Georgia, serif';
+    g.fillRect(0, 0, w, h);
+
+    // Số áo lớn chìm phía sau.
     g.textAlign = 'center';
-    g.fillText(legend.name, w / 2, h - 28);
+    g.textBaseline = 'middle';
+    g.globalAlpha = 0.22;
+    g.fillStyle = '#fff';
+    g.font = '800 300px Bitter, Georgia, serif';
+    g.fillText(String(legend.number ?? ''), w / 2, 200);
+    g.globalAlpha = 1;
+
+    // Bóng người mặc áo có số.
+    g.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    g.beginPath();
+    g.arc(w / 2, 150, 58, 0, Math.PI * 2);
+    g.fill();
+    g.beginPath();
+    g.moveTo(w / 2 - 120, 360);
+    g.quadraticCurveTo(w / 2 - 110, 225, w / 2, 220);
+    g.quadraticCurveTo(w / 2 + 110, 225, w / 2 + 120, 360);
+    g.fill();
+    g.fillStyle = club.accent;
+    g.font = '800 64px Bitter, Georgia, serif';
+    g.fillText(String(legend.number ?? ''), w / 2, 300);
+
+    // Dải tên phía dưới.
+    g.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    g.fillRect(0, 372, w, 140);
+    g.fillStyle = club.accent;
+    g.fillRect(0, 372, w, 5);
+    g.fillStyle = '#fff';
+    let size = 40;
+    g.font = `800 ${size}px Bitter, Georgia, serif`;
+    while (g.measureText(legend.name).width > w - 30 && size > 24) g.font = `800 ${(size -= 2)}px Bitter, Georgia, serif`;
+    g.fillText(legend.name, w / 2, 420);
+    g.font = '600 26px "Be Vietnam Pro", sans-serif';
+    g.fillStyle = club.accent;
+    g.fillText(`${club.name} · ${legend.years ?? ''}`, w / 2, 470);
+  };
+  const tex = textCanvas(384, 512, draw);
+  // Vẽ lại khi font (có dấu tiếng Việt, ü, č…) đã tải xong.
+  canvasFontsReady().then(() => {
+    draw(tex.image.getContext('2d'), tex.image.width, tex.image.height);
+    tex.needsUpdate = true;
   });
-  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7 });
+  // Tự sáng nhẹ để vẫn đọc được tên khi đứng xa đuốc.
+  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0.45 });
   if (legend.img) {
     new THREE.TextureLoader().load(legend.img, (img) => {
       img.colorSpace = THREE.SRGBColorSpace;
       mat.map = img;
+      mat.emissiveMap = img;
       mat.needsUpdate = true;
     });
   }
-  const poster = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 2.1), mat);
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.3, 0.08), new THREE.MeshStandardMaterial({ color: '#3a2618' }));
+  const poster = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 2.8), mat);
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(2.35, 3.05, 0.08), new THREE.MeshStandardMaterial({ color: '#3a2618' }));
   frame.position.z = -0.05;
   poster.add(frame);
   poster.position.set(Math.cos(angle) * r, 3.4, Math.sin(angle) * r);
@@ -195,7 +242,7 @@ function buildScreen(scene, css3dScene, { onVideoError } = {}) {
   const VIDEO_H = (VIDEO_W * 9) / 16;
   const videoY = 1.6 + VIDEO_H / 2;
   const noteY = videoY + VIDEO_H / 2 + 0.45;
-  const BOARD_H = 4.6;
+  const BOARD_H = 5.6; // lịch thi đấu + dải tỉ lệ bình chọn bên dưới
   const boardY = noteY + 0.5 + BOARD_H / 2;
 
   const frameH = boardY + BOARD_H / 2 + 0.3 - 1.1;
@@ -206,7 +253,14 @@ function buildScreen(scene, css3dScene, { onVideoError } = {}) {
   frame.position.set(0, 1.1 + frameH / 2, -0.3);
   group.add(frame);
 
-  const boardTex = textCanvas(2048, 536, (g, w, h) => drawFixtures(g, w, h, null));
+  const boardTex = textCanvas(2048, 652, (g, w, h) => drawBoard(g, w, h, null, null));
+  const boardData = { matches: null, poll: null };
+  async function redrawBoard() {
+    await canvasFontsReady();
+    const canvas = boardTex.image;
+    drawBoard(canvas.getContext('2d'), canvas.width, canvas.height, boardData.matches, boardData.poll);
+    boardTex.needsUpdate = true;
+  }
   const board = new THREE.Mesh(
     new THREE.PlaneGeometry(VIDEO_W, BOARD_H),
     new THREE.MeshBasicMaterial({ map: boardTex, fog: false }),
@@ -330,16 +384,14 @@ function buildScreen(scene, css3dScene, { onVideoError } = {}) {
   group.add(glow);
 
   return {
-    async setFixtures(matches) {
-      // Font chỉ dùng trên canvas chưa được trình duyệt tải (kể cả bộ chữ tiếng Việt): tải trước rồi mới vẽ.
-      await Promise.all(
-        ['800 58px Bitter', '700 42px "Be Vietnam Pro"', '600 34px "Be Vietnam Pro"', '500 34px "Be Vietnam Pro"'].map((f) =>
-          document.fonts.load(f, 'LỊCH THI ĐẤU Việt').catch(() => {}),
-        ),
-      );
-      const canvas = boardTex.image;
-      drawFixtures(canvas.getContext('2d'), canvas.width, canvas.height, matches);
-      boardTex.needsUpdate = true;
+    setFixtures(matches) {
+      boardData.matches = matches;
+      redrawBoard();
+    },
+    // poll: { matchId, home, away, options, counts } — vẽ tỉ lệ bình chọn ngay dưới lịch.
+    setPoll(poll) {
+      boardData.poll = poll;
+      redrawBoard();
     },
     setVideoMuted(muted) {
       if (!player?.mute) return;
@@ -433,6 +485,63 @@ function drawFixtures(g, w, h, matches) {
     g.font = '500 26px "Be Vietnam Pro", sans-serif';
     g.fillStyle = '#7d8bb0';
     g.fillText(shortLeague(m.league), x + colW - 56, cy);
+  });
+}
+
+const FIXTURE_AREA_H = 536;
+
+/** Bảng lớn: lịch thi đấu phía trên, dải tỉ lệ bình chọn trận gần nhất phía dưới. */
+function drawBoard(g, w, h, matches, poll) {
+  drawFixtures(g, w, FIXTURE_AREA_H, matches);
+  drawPollStrip(g, w, FIXTURE_AREA_H, h - FIXTURE_AREA_H, poll);
+}
+
+function drawPollStrip(g, w, y0, h, poll) {
+  g.fillStyle = '#161d36';
+  g.fillRect(0, y0, w, h);
+  g.fillStyle = BRAND.jersey.trim;
+  g.fillRect(0, y0, w, 4);
+  if (!poll?.home) return;
+
+  const counts = poll.counts ?? [];
+  const total = counts.reduce((a, b) => a + b, 0);
+  const pad = 36;
+  const titleY = y0 + 34;
+  g.textBaseline = 'middle';
+  g.textAlign = 'left';
+  g.font = '700 34px "Be Vietnam Pro", sans-serif';
+  g.fillStyle = '#fff';
+  g.fillText(`🗳️ ANH EM DỰ ĐOÁN · ${poll.home} vs ${poll.away}`, pad, titleY);
+  g.textAlign = 'right';
+  g.font = '500 30px "Be Vietnam Pro", sans-serif';
+  g.fillStyle = '#9fb0d8';
+  g.fillText(total ? `${total} phiếu · bấm 1 / 2 / 3 để chọn` : 'Chưa có phiếu · bấm 1 / 2 / 3 để chọn', w - pad, titleY);
+
+  // Thanh chồng 3 màu: đội nhà thắng / hoà / đội khách thắng.
+  const barX = pad;
+  const barY = y0 + 62;
+  const barW = w - pad * 2;
+  const barH = 46;
+  const colors = [BRAND.jersey.trim, '#7d8bb0', '#4f8cff'];
+  const labels = [poll.home, 'Hoà', poll.away];
+  const shares = counts.map((c) => (total ? c / total : 1 / counts.length));
+  let x = barX;
+  shares.forEach((s, i) => {
+    const segW = i === shares.length - 1 ? barX + barW - x : Math.round(barW * s);
+    if (segW <= 0) return;
+    g.fillStyle = colors[i] ?? '#888';
+    g.globalAlpha = total ? 1 : 0.35;
+    g.fillRect(x, barY, segW, barH);
+    g.globalAlpha = 1;
+    const pct = total ? `${Math.round(s * 100)}%` : '–';
+    const text = `${labels[i] ?? ''} ${pct}`;
+    g.font = '700 30px "Be Vietnam Pro", sans-serif';
+    g.fillStyle = i === 0 ? '#1b1b1b' : '#fff';
+    g.textAlign = 'center';
+    // Đoạn hẹp thì chỉ ghi phần trăm.
+    const fit = g.measureText(text).width + 20 < segW ? text : g.measureText(pct).width + 10 < segW ? pct : '';
+    g.fillText(fit, x + segW / 2, barY + barH / 2 + 1);
+    x += segW;
   });
 }
 
@@ -851,13 +960,16 @@ export function mountCave(app, { profile, onLeave }) {
     });
   }
   let lastCounts = POLL.options.map(() => 0);
+  let currentPoll = null;
   function applyPoll(p) {
+    currentPoll = p;
     pollMatchId = p.matchId;
     pollSize = p.options.length;
     myVote = p.mine;
     lastCounts = p.counts;
     hud.setPoll(p);
     renderPoll(lastCounts);
+    screen.setPoll(p);
   }
   hud.onVote = vote;
   function vote(i) {
@@ -950,6 +1062,7 @@ export function mountCave(app, { profile, onLeave }) {
       if (msg.matchId !== pollMatchId) return;
       lastCounts = msg.counts;
       renderPoll(lastCounts);
+      screen.setPoll({ ...currentPoll, counts: msg.counts });
     },
     myvote(msg) {
       if (msg.matchId !== pollMatchId) return;
