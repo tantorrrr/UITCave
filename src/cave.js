@@ -240,12 +240,28 @@ function buildScreen(scene, css3dScene, { onVideoError } = {}) {
     });
   const idle = new THREE.Mesh(
     new THREE.PlaneGeometry(VIDEO_W, VIDEO_H),
-    new THREE.MeshBasicMaterial({ map: idleTexture('Chưa có video. Điền youtubeId trong src/config.js') }),
+    new THREE.MeshBasicMaterial({ map: idleTexture('Chưa có video. Điền youtubeIds trong src/config.js') }),
   );
   idle.position.set(0, videoY, 0.02);
   group.add(idle);
 
-  if (SCOREBOARD.youtubeId) {
+  const playlist = [...SCOREBOARD.youtubeIds].sort(() => Math.random() - 0.5);
+  const blocked = new Set();
+  let current = 0;
+  const currentId = () => playlist[current];
+  // Chuyển sang video kế tiếp chưa bị chặn; hết thì trả về false.
+  function advance() {
+    for (let step = 1; step <= playlist.length; step++) {
+      const next = (current + step) % playlist.length;
+      if (!blocked.has(playlist[next])) {
+        current = next;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  if (playlist.length) {
     // "Lỗ" trong suốt trên canvas WebGL để iframe (lớp CSS3D phía sau) lộ ra.
     idle.visible = false;
     const hole = new THREE.Mesh(
@@ -261,20 +277,28 @@ function buildScreen(scene, css3dScene, { onVideoError } = {}) {
     loadYouTubeApi().then((YT) => {
       player = new YT.Player(box.firstChild, {
         host: 'https://www.youtube-nocookie.com',
-        videoId: SCOREBOARD.youtubeId,
+        videoId: currentId(),
         width: 1280,
         height: 720,
         playerVars: {
           autoplay: 1, mute: 1, controls: 0, disablekb: 1, fs: 0, rel: 0,
-          playsinline: 1, loop: 1, playlist: SCOREBOARD.youtubeId, origin: location.origin,
+          playsinline: 1, origin: location.origin,
         },
         events: {
           onReady: (e) => {
             e.target.mute();
             e.target.playVideo();
           },
-          // 101/150: chủ video không cho nhúng. Hiện thông báo thay vì màn đen.
+          onStateChange: (e) => {
+            if (e.data === YT.PlayerState.ENDED && advance()) e.target.loadVideoById(currentId());
+          },
+          // 101/150: chủ video không cho nhúng. Thử video khác; hết video thì hiện thông báo.
           onError: (e) => {
+            blocked.add(currentId());
+            if (advance()) {
+              e.target.loadVideoById(currentId());
+              return;
+            }
             idle.material.map.dispose();
             idle.material.map = idleTexture(
               e.data === 101 || e.data === 150 ? 'Video này chỉ xem được trên YouTube' : 'Không phát được video',
@@ -306,6 +330,7 @@ function buildScreen(scene, css3dScene, { onVideoError } = {}) {
         player.playVideo();
       }
     },
+    currentVideoId: currentId,
     dispose() {
       player?.destroy?.();
     },
@@ -757,7 +782,7 @@ export function mountCave(app, { profile, onLeave }) {
   let videoMuted = true;
   function toggleVideo() {
     if (videoBlocked) {
-      open(`https://www.youtube.com/watch?v=${SCOREBOARD.youtubeId}`, '_blank', 'noopener');
+      open(`https://www.youtube.com/watch?v=${screen.currentVideoId()}`, '_blank', 'noopener');
       return;
     }
     videoMuted = !videoMuted;

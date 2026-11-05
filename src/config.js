@@ -40,8 +40,19 @@ export const SCOREBOARD = {
   away: 'KHÁCH',
   score: '0 - 0',
   note: 'Vào đây giao lưu võ thuật 👊',
-  // Video YouTube chiếu dưới bảng tỉ số. Để trống = không chiếu.
-  youtubeId: '27GHT7nAF8A',
+  // Video YouTube chiếu dưới bảng tỉ số, phát ngẫu nhiên lần lượt. Để mảng rỗng = không chiếu.
+  // Chỉ dùng video của kênh chính thức có cho nhúng (video chặn nhúng sẽ tự bị bỏ qua).
+  youtubeIds: [
+    '6Pn5qnuCVg8', // Highlights: Liverpool 1-1 Chelsea | Reds win on penalties!
+    'hn3fpfByQCc', // Extended Highlights: Liverpool 1-1 Chelsea | Penalty shootout win!
+    'XwZmyMvOtyw', // Liverpool vs Chelsea | Full penalty shootout | 6-5 | Carabao Cup
+    'BORuDyEx8zI', // Extended Highlights: Brentford 1-2 Liverpool | Late Reds comeback!
+    'iSPDVKdWoJU', // Highlights: Liverpool 4-3 Villarreal | Champions League comeback win!
+    'oQ801H0LOT8', // Extended Highlights: Liverpool 2-0 Brighton
+    '0GVEp6T5JIo', // Inside Anfield: Liverpool vs Chelsea
+    'r9UcOBrPqPo', // Top 10: BEST Liverpool vs Arsenal Premier League games at Anfield
+    'U9t2xbnyGOY', // Diogo Jota: Every Goal | Liverpool FC
+  ],
 };
 
 // Chân dung treo tường. Có ảnh thì đặt vào public/images/legends/ và điền `img`.
