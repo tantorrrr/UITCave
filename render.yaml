@@ -6,3 +6,7 @@ services:
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/stats
+    # Tên miền riêng (mua ở Porkbun). Render tự thêm www.hangchung.top chuyển về tên gốc
+    # và tự cấp chứng chỉ HTTPS. DNS bên Porkbun: ALIAS @ và CNAME www → hang-uit.onrender.com.
+    domains:
+      - hangchung.top
