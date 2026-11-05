@@ -124,3 +124,30 @@ Server giữ mọi thứ trong bộ nhớ: khởi động lại là mất chat v
 | Declan Rice | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Declan_Rice_England_v_Ghana_23_June_2026-150.jpg) |
 | William Saliba | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:William_Saliba_France_v_Paraguay_4_July_2026-183.jpg) |
 | Gabriel Martinelli | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Gabriel_Martinelli_Brazil_V_Morocco_13_June_2026-144.jpg) |
+| Lionel Messi | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Leo_Messi_Argentina_v_Egypt_7_July_2026-1.jpg) |
+| Andrés Iniesta | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Andr%C3%A9s_Iniesta_Argentina_v_Spain_19_July_2026-034_(cropped).jpg) |
+| Carles Puyol | Pedro J Pacheco | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Premios_Goya_2020_-_Carles_Pujol.jpg) |
+| Ronaldinho | Marcos Corrêa/PR | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Ronaldinho_in_2019.jpg) |
+| Sergio Busquets | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Sergio_Busquets_NYCFC_Miami_24_Sep_2025-020_(cropped).jpg) |
+| Gerard Piqué | Дмитрий Неймырок | CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Gerard_Piqu%C3%A9_Euro_2012_vs_France_01.jpg) |
+| Víctor Valdés | Own work | CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:V%C3%ADctor_Vald%C3%A9s_(2010).jpg) |
+| Samuel Eto'o | BACHELOR45 | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Sammuel_Eto'o_Fils_02.jpg) |
+| Neymar | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Neymar_Junior_Brazil_V_Morocco_13_June_2026-40.jpg) |
+| Robert Lewandowski | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Robert_Lewandowski_NYCFC_v_Chicago_25_July_2026-383.jpg) |
+| Pedri | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Pedri_France_v_Spain_7.24.26-245.jpg) |
+| Lamine Yamal | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Lamine_Yamal_France_v_Spain_7.24.26-142.jpg) |
+| Raúl | Barcex | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:25th_Laureus_World_Sports_Awards_-_Ra%C3%BAl_-_240422_132916-2_(cropped).jpg) |
+| Iker Casillas | Web Summit | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Iker-Casillas-SportsTrade-2021-cropped.jpg) |
+| Sergio Ramos | Real Madrid | CC BY 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Sergio_Ramos_Interview_2021_(cropped).jpg) |
+| Zinedine Zidane | Hadi Abyar | CC BY 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Zinedine_Zidane_by_Tasnim_03.jpg) |
+| Roberto Carlos | Web Summit | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:LS3_1288_(53332367864)_(cropped).jpg) |
+| Luka Modrić | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Luka_Modric_Croatia_v_Portugal_2_July_2026-055.jpg) |
+| Toni Kroos | https://www.youtube.com/@realmadrid | CC BY 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Toni_Kroos_Real_Madrid_2021.jpg) |
+| Karim Benzema | Chris Deahr | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Karim_Benzema_vs._FC_Schalke_04_(16647992937).jpg) |
+| Marcelo | Fotografías Archimadrid.es | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Marcelo_Vieira_in_2022.jpg) |
+| Gareth Bale | حسین ظهروند | CC BY 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:2022_FIFA_World_Cup_United_States_1%E2%80%931_Wales_-_(32)_(cropped).jpg) |
+| Vinícius Júnior | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Vin%C3%ADcius_J%C3%BAnior_Brazil_V_Morocco_13_June_2026-207_(cropped).jpg) |
+| Jude Bellingham | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Jude_Bellingham_England_v_Ghana_23_June_2026-061_(cropped).jpg) |
+| Kylian Mbappé | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Kylian_Mbappe_France_v_Senegal_16_June_2026-391_(cropped).jpg) |
+| Luís Figo | Žan Kolman | Public domain | [Commons](https://commons.wikimedia.org/wiki/File:Luis_Figo_2023.jpg) |
+| David Beckham | Soccer Aid for Unicef | CC BY 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:David_Beckham_UNICEF_(cropped2).jpg) |

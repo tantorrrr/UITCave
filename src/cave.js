@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { CSS3DObject, CSS3DRenderer } from 'three/addons/renderers/CSS3DRenderer.js';
-import { BRAND, CLUBS, FIXTURE_TEAMS, FAN_SONGS, LEGENDS, POLL, POSTER_SLOTS, POSTER_SWAP_MS, SCOREBOARD } from './config.js';
+import { BRAND, CLUB_ORDER, CLUBS, FIXTURE_TEAMS, FAN_SONGS, LEGENDS, POLL, POSTER_SLOTS, POSTER_SWAP_MS, SCOREBOARD } from './config.js';
 import { createAvatar } from './avatar.js';
 import { LEGEND_PHOTOS } from './legendPhotos.js';
 import { createAudio } from './audio.js';
@@ -134,13 +134,15 @@ function buildCave(scene) {
   const GAP_LEFT = RESULTS_GAP;
   const start = -Math.PI / 2 + GAP_RIGHT;
   const span = Math.PI * 2 - GAP_RIGHT - GAP_LEFT;
-  // Ban đầu treo nhóm đầu của LEGENDS (đã xếp theo CLB); cầu thủ còn lại thay phiên dần.
+  // Chia đều khung tranh cho các CLB (khung dư chia cho CLB đầu danh sách), xếp liền nhau theo CLB;
+  // cầu thủ còn lại của mỗi CLB thay phiên dần.
   const slots = Math.min(POSTER_SLOTS, LEGENDS.length);
-  const posters = [];
-  for (let i = 0; i < slots; i++) {
-    const a = start + (span * (i + 0.5)) / slots;
-    posters.push(createPoster(scene, LEGENDS[i], a, wallR));
-  }
+  const clubs = CLUB_ORDER.filter((c) => LEGENDS.some((l) => l.club === c));
+  const initial = clubs.flatMap((c, i) => {
+    const count = Math.floor(slots / clubs.length) + (i < slots % clubs.length ? 1 : 0);
+    return LEGENDS.filter((l) => l.club === c).slice(0, count);
+  });
+  const posters = initial.map((legend, i) => createPoster(scene, legend, start + (span * (i + 0.5)) / initial.length, wallR));
   const gallery = createGallery(posters);
   // Chỉ bản dev: xem cầu thủ đang treo để kiểm việc thay phiên.
   if (import.meta.env.DEV) window.__hangPosters = () => posters.map((p) => p.legend.name);
@@ -747,7 +749,10 @@ function drawPollStrip(g, w, y0, h, poll) {
 }
 
 function shortLeague(name) {
-  const map = { 'Premier League': 'NHA', 'UEFA Champions League': 'C1', 'UEFA Europa League': 'C2', 'Carabao Cup': 'League Cup', 'FA Cup': 'FA Cup' };
+  const map = {
+    'Premier League': 'NHA', LALIGA: 'La Liga', 'UEFA Champions League': 'C1', 'UEFA Europa League': 'C2',
+    'Carabao Cup': 'League Cup', 'FA Cup': 'FA Cup', 'Copa del Rey': 'Cúp Nhà Vua',
+  };
   return map[name] ?? name;
 }
 
@@ -1178,7 +1183,7 @@ export function mountCave(app, { profile, onLeave }) {
   const others = new Map();
   let myId = null;
   const me = {
-    avatar: createAvatar(profile.number),
+    avatar: createAvatar(profile.number, profile.club),
     pos: new THREE.Vector3(0, 0, 10),
     ry: Math.PI,
     knock: new THREE.Vector3(),
@@ -1218,7 +1223,7 @@ export function mountCave(app, { profile, onLeave }) {
 
   function addOther(p) {
     if (p.id === myId || others.has(p.id)) return;
-    const avatar = createAvatar(p.number);
+    const avatar = createAvatar(p.number, p.club);
     const label = makeLabel(p.name, p.number);
     avatar.root.add(label.obj);
     avatar.root.position.set(p.x, 0, p.z);

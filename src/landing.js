@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BRAND, QUIZ } from './config.js';
+import { BRAND, CLUB_ORDER, CLUBS, QUIZ } from './config.js';
 import { createHangingJersey, drawJerseyIcon } from './avatar.js';
 import { rockGeometry, rockMaterial, rng, textCanvas } from './scenery.js';
 import { el, loadProfile, saveProfile } from './util.js';
@@ -149,10 +149,25 @@ function nameDialog(root, onSubmit) {
     counter.textContent = `${name.value.length}/30 ký tự`;
     submit.disabled = !name.value.trim();
     num.value = num.value.replace(/\D/g, '');
-    drawJerseyIcon(icon, parseNum(num.value));
+    drawJerseyIcon(icon, parseNum(num.value), club);
   }
   name.addEventListener('input', refresh);
   num.addEventListener('input', refresh);
+
+  // Chọn CLB cổ vũ: quyết định màu áo nhân vật trong hang. Bỏ trống = áo Hang Uit.
+  let club = CLUBS[saved.club] ? saved.club : '';
+  const clubBtns = [['', 'Không chọn'], ...CLUB_ORDER.map((k) => [k, CLUBS[k].name])].map(([key, label]) => {
+    const dot = el('canvas', { width: 40, height: 40, className: 'club-kit' });
+    drawJerseyIcon(dot, null, key);
+    const b = el('button', { type: 'button', className: 'club-chip' }, dot, el('span', {}, label));
+    b.addEventListener('click', () => {
+      club = key;
+      clubBtns.forEach((x) => x.classList.toggle('active', x === b));
+      refresh();
+    });
+    if (key === club) b.classList.add('active');
+    return b;
+  });
 
   const form = el(
     'form',
@@ -161,6 +176,8 @@ function nameDialog(root, onSubmit) {
     el('label', {}, 'Tên hiện trên đầu nhân vật'),
     name,
     counter,
+    el('label', { style: 'margin-top:8px' }, 'Bạn là fan CLB nào?'),
+    el('div', { className: 'club-picker' }, ...clubBtns),
     el(
       'div',
       { className: 'row' },
@@ -175,7 +192,7 @@ function nameDialog(root, onSubmit) {
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     if (!name.value.trim()) return;
-    const profile = { name: name.value.trim().slice(0, 30), number: parseNum(num.value) };
+    const profile = { name: name.value.trim().slice(0, 30), number: parseNum(num.value), club };
     saveProfile(profile);
     backdrop.remove();
     onSubmit(profile);

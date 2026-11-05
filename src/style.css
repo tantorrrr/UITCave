@@ -29,6 +29,19 @@ html, body {
 
 #app { position: fixed; inset: 0; }
 
+/* Nội dung chữ tĩnh trong index.html (cho máy tìm kiếm); JS thay thế ngay khi trang chạy. */
+.seo-fallback {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 32px 20px;
+  color: #e9e0d0;
+  line-height: 1.6;
+  height: 100%;
+  overflow-y: auto;
+}
+.seo-fallback h1 { font: 800 28px/1.25 var(--font-head); color: #fff; }
+.seo-fallback a { color: var(--gold); }
+
 .stage { position: absolute; inset: 0; }
 .stage canvas { display: block; }
 
@@ -99,6 +112,7 @@ html, body {
   animation: pop 0.18s ease-out;
 }
 .modal h2 { font: 800 20px/1.25 var(--font-head); margin: 0 0 12px; }
+.modal { max-height: calc(100dvh - 32px); overflow-y: auto; }
 .modal .eyebrow { font-size: 12px; color: var(--primary); font-weight: 600; margin-bottom: 4px; }
 .modal label { font-size: 12px; color: var(--ink-soft); display: block; margin-bottom: 6px; }
 .modal input {
@@ -118,6 +132,22 @@ html, body {
 .modal .row .hint { font-size: 11px; color: var(--ink-soft); }
 .modal .num-input { width: 52px; text-align: center; padding: 8px 4px; }
 .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+.club-picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 4px; }
+.club-chip {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 2px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: var(--cream-2);
+  color: var(--ink);
+  font: 500 11px var(--font-body);
+  cursor: pointer;
+  line-height: 1.2;
+}
+.club-chip:hover { border-color: var(--primary); }
+.club-chip.active { border-color: var(--primary); background: #e3eafc; box-shadow: 0 0 0 1px var(--primary); }
+.club-chip .club-kit { width: 28px; height: 28px; }
 
 .quiz-opt {
   display: block; width: 100%;

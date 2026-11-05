@@ -1,28 +1,55 @@
 import * as THREE from 'three';
-import { BRAND } from './config.js';
+import { BRAND, CLUBS } from './config.js';
 
 const SKIN = '#e8b896';
 
-function jerseyTexture(number) {
+// Áo mặc định khi không chọn CLB: màu thương hiệu Hang Uit.
+const DEFAULT_KIT = {
+  body: BRAND.jersey.body,
+  sleeve: BRAND.jersey.body,
+  trim: BRAND.jersey.trim,
+  shorts: '#f4f1ea',
+  number: BRAND.jersey.number,
+};
+
+/** Bộ màu áo theo mã CLB (liverpool, barcelona…); mã lạ hoặc rỗng → áo Hang Uit. */
+export function kitOf(club) {
+  return CLUBS[club]?.kit ?? DEFAULT_KIT;
+}
+
+/** Vẽ sọc dọc (Barca) lên vùng (x, y, w, h). */
+function drawStripes(g, kit, x, y, w, h, count) {
+  if (!kit.stripe) return;
+  const sw = w / count;
+  g.fillStyle = kit.stripe;
+  for (let i = 1; i < count; i += 2) g.fillRect(x + i * sw, y, sw, h);
+}
+
+function jerseyTexture(number, kit) {
   const c = document.createElement('canvas');
   c.width = 512;
   c.height = 256;
   const g = c.getContext('2d');
-  g.fillStyle = BRAND.jersey.body;
+  g.fillStyle = kit.body;
   g.fillRect(0, 0, c.width, c.height);
+  drawStripes(g, kit, 0, 0, c.width, c.height, 12);
   // Viền cổ/vai
-  g.fillStyle = BRAND.jersey.trim;
+  g.fillStyle = kit.trim;
   g.fillRect(0, 0, c.width, 14);
   // UV u=0.5 của CylinderGeometry nằm phía -z = lưng nhân vật.
   if (number) {
-    g.fillStyle = BRAND.jersey.number;
+    g.fillStyle = kit.number;
     g.font = '800 150px Bitter, Georgia, serif';
     g.textAlign = 'center';
     g.textBaseline = 'middle';
+    // Viền chữ để số vẫn rõ trên áo sọc hoặc áo trắng.
+    g.lineWidth = 6;
+    g.strokeStyle = 'rgba(0,0,0,0.25)';
+    g.strokeText(String(number), c.width / 2, 140);
     g.fillText(String(number), c.width / 2, 140);
   }
   // Huy hiệu nhỏ ở ngực (u≈0.08)
-  g.fillStyle = BRAND.jersey.trim;
+  g.fillStyle = kit.trim;
   g.beginPath();
   g.arc(c.width * 0.08, 70, 14, 0, Math.PI * 2);
   g.fill();
@@ -33,10 +60,11 @@ function jerseyTexture(number) {
 }
 
 /** Nhân vật dạng "con lăn": thân áo đấu, đầu tròn, hai tay. Mặt quay về +z. */
-export function createAvatar(number) {
+export function createAvatar(number, club) {
   const root = new THREE.Group();
+  const kit = kitOf(club);
 
-  const bodyMat = new THREE.MeshStandardMaterial({ map: jerseyTexture(number), roughness: 0.75 });
+  const bodyMat = new THREE.MeshStandardMaterial({ map: jerseyTexture(number, kit), roughness: 0.75 });
   const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 1.1, 24, 1), bodyMat);
   body.position.y = 0.75;
   body.castShadow = true;
@@ -44,7 +72,7 @@ export function createAvatar(number) {
 
   const shorts = new THREE.Mesh(
     new THREE.CylinderGeometry(0.5, 0.48, 0.28, 24),
-    new THREE.MeshStandardMaterial({ color: '#f4f1ea', roughness: 0.8 }),
+    new THREE.MeshStandardMaterial({ color: kit.shorts, roughness: 0.8 }),
   );
   shorts.position.y = 0.14;
   shorts.castShadow = true;
@@ -71,7 +99,7 @@ export function createAvatar(number) {
   }
 
   const armGeo = new THREE.CapsuleGeometry(0.11, 0.45, 4, 10);
-  const sleeveMat = new THREE.MeshStandardMaterial({ color: BRAND.jersey.body, roughness: 0.75 });
+  const sleeveMat = new THREE.MeshStandardMaterial({ color: kit.sleeve, roughness: 0.75 });
   const arms = [];
   for (const side of [-1, 1]) {
     const pivot = new THREE.Group();
@@ -274,37 +302,55 @@ export function createHangingJersey() {
 }
 
 /** Vẽ áo 2D nhỏ cho hộp nhập tên. */
-export function drawJerseyIcon(canvas, number) {
+export function drawJerseyIcon(canvas, number, club) {
+  const kit = kitOf(club);
   const g = canvas.getContext('2d');
   const w = canvas.width;
   const h = canvas.height;
   g.clearRect(0, 0, w, h);
   g.save();
   g.scale(w / 40, h / 40);
-  g.fillStyle = BRAND.jersey.body;
-  g.beginPath();
-  g.moveTo(13, 5);
-  g.lineTo(8, 7);
-  g.lineTo(2, 13);
-  g.lineTo(6, 18);
-  g.lineTo(10, 15);
-  g.lineTo(10, 36);
-  g.lineTo(30, 36);
-  g.lineTo(30, 15);
-  g.lineTo(34, 18);
-  g.lineTo(38, 13);
-  g.lineTo(32, 7);
-  g.lineTo(27, 5);
-  g.quadraticCurveTo(20, 10, 13, 5);
+  const shirt = () => {
+    g.beginPath();
+    g.moveTo(13, 5);
+    g.lineTo(8, 7);
+    g.lineTo(2, 13);
+    g.lineTo(6, 18);
+    g.lineTo(10, 15);
+    g.lineTo(10, 36);
+    g.lineTo(30, 36);
+    g.lineTo(30, 15);
+    g.lineTo(34, 18);
+    g.lineTo(38, 13);
+    g.lineTo(32, 7);
+    g.lineTo(27, 5);
+    g.quadraticCurveTo(20, 10, 13, 5);
+  };
+  shirt();
+  g.fillStyle = kit.body;
   g.fill();
-  g.strokeStyle = BRAND.jersey.trim;
+  // Sọc và tay áo vẽ trong khuôn áo.
+  g.save();
+  shirt();
+  g.clip();
+  drawStripes(g, kit, 10, 0, 20, 40, 5);
+  g.fillStyle = kit.sleeve;
+  g.fillRect(0, 0, 10, 40);
+  g.fillRect(30, 0, 10, 40);
+  g.restore();
+  // Viền áo để áo trắng (Real) vẫn nổi trên nền sáng.
+  shirt();
+  g.strokeStyle = 'rgba(0,0,0,0.35)';
+  g.lineWidth = 0.8;
+  g.stroke();
+  g.strokeStyle = kit.trim;
   g.lineWidth = 1.5;
   g.beginPath();
   g.moveTo(13, 5);
   g.quadraticCurveTo(20, 10, 27, 5);
   g.stroke();
   if (number) {
-    g.fillStyle = BRAND.jersey.number;
+    g.fillStyle = kit.number;
     g.font = '800 13px Bitter, Georgia, serif';
     g.textAlign = 'center';
     g.textBaseline = 'middle';

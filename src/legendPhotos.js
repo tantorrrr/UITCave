@@ -467,5 +467,167 @@ export const LEGEND_PHOTOS = {
     "artist": "Bryan Berlin",
     "license": "CC BY-SA 4.0",
     "source": "https://commons.wikimedia.org/wiki/File:Gabriel_Martinelli_Brazil_V_Morocco_13_June_2026-144.jpg"
+  },
+  "Lionel Messi": {
+    "img": "/images/legends/lionel-messi.jpg",
+    "artist": "Bryan Berlin",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Leo_Messi_Argentina_v_Egypt_7_July_2026-1.jpg"
+  },
+  "Andrés Iniesta": {
+    "img": "/images/legends/andres-iniesta.jpg",
+    "artist": "Bryan Berlin",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Andr%C3%A9s_Iniesta_Argentina_v_Spain_19_July_2026-034_(cropped).jpg"
+  },
+  "Carles Puyol": {
+    "img": "/images/legends/carles-puyol.jpg",
+    "artist": "Pedro J Pacheco",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Premios_Goya_2020_-_Carles_Pujol.jpg"
+  },
+  "Ronaldinho": {
+    "img": "/images/legends/ronaldinho.jpg",
+    "artist": "Marcos Corrêa/PR",
+    "license": "CC BY 2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Ronaldinho_in_2019.jpg"
+  },
+  "Sergio Busquets": {
+    "img": "/images/legends/sergio-busquets.jpg",
+    "artist": "Bryan Berlin",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Sergio_Busquets_NYCFC_Miami_24_Sep_2025-020_(cropped).jpg"
+  },
+  "Gerard Piqué": {
+    "img": "/images/legends/gerard-pique.jpg",
+    "artist": "Дмитрий Неймырок",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Gerard_Piqu%C3%A9_Euro_2012_vs_France_01.jpg"
+  },
+  "Víctor Valdés": {
+    "img": "/images/legends/victor-valdes.jpg",
+    "artist": "Own work",
+    "license": "CC BY-SA 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:V%C3%ADctor_Vald%C3%A9s_(2010).jpg"
+  },
+  "Samuel Eto'o": {
+    "img": "/images/legends/samuel-eto-o.jpg",
+    "artist": "BACHELOR45",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Sammuel_Eto%27o_Fils_02.jpg"
+  },
+  "Neymar": {
+    "img": "/images/legends/neymar.jpg",
+    "artist": "Bryan Berlin",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Neymar_Junior_Brazil_V_Morocco_13_June_2026-40.jpg"
+  },
+  "Robert Lewandowski": {
+    "img": "/images/legends/robert-lewandowski.jpg",
+    "artist": "Bryan Berlin",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Robert_Lewandowski_NYCFC_v_Chicago_25_July_2026-383.jpg"
+  },
+  "Pedri": {
+    "img": "/images/legends/pedri.jpg",
+    "artist": "Bryan Berlin",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Pedri_France_v_Spain_7.24.26-245.jpg"
+  },
+  "Lamine Yamal": {
+    "img": "/images/legends/lamine-yamal.jpg",
+    "artist": "Bryan Berlin",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Lamine_Yamal_France_v_Spain_7.24.26-142.jpg"
+  },
+  "Raúl": {
+    "img": "/images/legends/raul.jpg",
+    "artist": "Barcex",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:25th_Laureus_World_Sports_Awards_-_Ra%C3%BAl_-_240422_132916-2_(cropped).jpg"
+  },
+  "Iker Casillas": {
+    "img": "/images/legends/iker-casillas.jpg",
+    "artist": "Web Summit",
+    "license": "CC BY 2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Iker-Casillas-SportsTrade-2021-cropped.jpg"
+  },
+  "Sergio Ramos": {
+    "img": "/images/legends/sergio-ramos.jpg",
+    "artist": "Real Madrid",
+    "license": "CC BY 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Sergio_Ramos_Interview_2021_(cropped).jpg"
+  },
+  "Zinedine Zidane": {
+    "img": "/images/legends/zinedine-zidane.jpg",
+    "artist": "Hadi Abyar",
+    "license": "CC BY 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Zinedine_Zidane_by_Tasnim_03.jpg"
+  },
+  "Roberto Carlos": {
+    "img": "/images/legends/roberto-carlos.jpg",
+    "artist": "Web Summit",
+    "license": "CC BY 2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:LS3_1288_(53332367864)_(cropped).jpg"
+  },
+  "Luka Modrić": {
+    "img": "/images/legends/luka-modric.jpg",
+    "artist": "Bryan Berlin",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Luka_Modric_Croatia_v_Portugal_2_July_2026-055.jpg"
+  },
+  "Toni Kroos": {
+    "img": "/images/legends/toni-kroos.jpg",
+    "artist": "https://www.youtube.com/@realmadrid",
+    "license": "CC BY 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Toni_Kroos_Real_Madrid_2021.jpg"
+  },
+  "Karim Benzema": {
+    "img": "/images/legends/karim-benzema.jpg",
+    "artist": "Chris Deahr",
+    "license": "CC BY 2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Karim_Benzema_vs._FC_Schalke_04_(16647992937).jpg"
+  },
+  "Marcelo": {
+    "img": "/images/legends/marcelo.jpg",
+    "artist": "Fotografías Archimadrid.es",
+    "license": "CC BY 2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Marcelo_Vieira_in_2022.jpg"
+  },
+  "Gareth Bale": {
+    "img": "/images/legends/gareth-bale.jpg",
+    "artist": "حسین ظهروند",
+    "license": "CC BY 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:2022_FIFA_World_Cup_United_States_1%E2%80%931_Wales_-_(32)_(cropped).jpg"
+  },
+  "Vinícius Júnior": {
+    "img": "/images/legends/vinicius-junior.jpg",
+    "artist": "Bryan Berlin",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Vin%C3%ADcius_J%C3%BAnior_Brazil_V_Morocco_13_June_2026-207_(cropped).jpg"
+  },
+  "Jude Bellingham": {
+    "img": "/images/legends/jude-bellingham.jpg",
+    "artist": "Bryan Berlin",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Jude_Bellingham_England_v_Ghana_23_June_2026-061_(cropped).jpg"
+  },
+  "Kylian Mbappé": {
+    "img": "/images/legends/kylian-mbappe.jpg",
+    "artist": "Bryan Berlin",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Kylian_Mbappe_France_v_Senegal_16_June_2026-391_(cropped).jpg"
+  },
+  "Luís Figo": {
+    "img": "/images/legends/luis-figo.jpg",
+    "artist": "Žan Kolman",
+    "license": "Public domain",
+    "source": "https://commons.wikimedia.org/wiki/File:Luis_Figo_2023.jpg"
+  },
+  "David Beckham": {
+    "img": "/images/legends/david-beckham.jpg",
+    "artist": "Soccer Aid for Unicef",
+    "license": "CC BY 3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:David_Beckham_UNICEF_(cropped2).jpg"
   }
 };

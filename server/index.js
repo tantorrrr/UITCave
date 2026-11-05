@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
-import { FIXTURE_TEAMS, POLL } from '../src/config.js';
+import { CLUBS, FIXTURE_TEAMS, POLL } from '../src/config.js';
 
 // Khi dev, Vite chiếm PORT (nếu có) nên server luôn ở 8787 để khớp proxy trong vite.config.js.
 const PORT = process.argv.includes('--dev') ? 8787 : Number(process.env.PORT) || 8787;
@@ -26,6 +26,8 @@ const MIME = {
   '.jpg': 'image/jpeg',
   '.woff2': 'font/woff2',
   '.json': 'application/json',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
 };
 
 /** @type {Map<number, any>} */
@@ -219,7 +221,7 @@ function cleanNumber(raw) {
 }
 
 function publicInfo(p) {
-  return { id: p.id, name: p.name, number: p.number, x: p.x, z: p.z, ry: p.ry, a: p.a, hp: p.hp, ghostLeft: ghostLeft(p) };
+  return { id: p.id, name: p.name, number: p.number, club: p.club, x: p.x, z: p.z, ry: p.ry, a: p.a, hp: p.hp, ghostLeft: ghostLeft(p) };
 }
 
 // Gửi số ms còn lại thay vì mốc giờ server để khỏi lệch đồng hồ máy người chơi.
@@ -253,6 +255,7 @@ wss.on('connection', (ws) => {
         ws,
         name: cleanName(msg.name),
         number: cleanNumber(msg.number),
+        club: Object.hasOwn(CLUBS, msg.club) ? msg.club : '',
         x: spawn.x,
         z: spawn.z,
         ry: 0,

@@ -65,6 +65,18 @@ export const SCOREBOARD = {
     'ncVXv8kAOaA', // Michael Carrick's Powerful Statement | Press Conference (333K)
     'dTCA1UfrKkY', // Chelsea 2-0 Man Utd | Extended Highlights (287K)
     '1ByXkUgYQls', // Charging Up For Chelsea! | Inside Training (187K)
+    // FC Barcelona
+    'ggebrRRq1Fg', // MATCH PREVIEW: PSG vs FC BARCELONA (2.8M)
+    'UJpuIXIJAHM', // FC BARCELONA 6 vs 1 ALAVÉS | LALIGA (2.3M)
+    'QIGNqxmBcIQ', // FC BARCELONA 1 vs 2 REAL MADRID | LALIGA (1.5M)
+    '_LpzkLDdR6U', // HIGHLIGHTS | PSG 4 vs 2 FC BARCELONA (1.2M)
+    'CXk8Er7Yf9w', // HIGHLIGHTS | FC BARCELONA 3 vs 0 ASTON VILLA (168K)
+    // Real Madrid
+    'T5B3ZVTvrhM', // HIGHLIGHTS | FC Barcelona 1-2 Real Madrid (5.3M)
+    'zkgpyvjJl84', // HIGHLIGHTS | Roma 3-4 Real Madrid (3.2M)
+    'SbGF1xglHh4', // HIGHLIGHTS | Real Madrid 4-1 RB Leipzig (1.7M)
+    'I1yeLaFydjM', // HIGHLIGHTS | Real Madrid 4-1 Sevilla (1.5M)
+    '6_lF0UJ00KM', // MBAPPÉ'S 100 GOALS! ALL HIS GOALS FOR REAL MADRID (1.2M)
   ],
 };
 
@@ -82,6 +94,9 @@ export const FAN_SONGS = [
   { id: '6tAaKqKUy20', club: 'chelsea', title: 'Blue Is the Colour · Munich 2012' },
   { id: '5gU277dBf8I', club: 'arsenal', title: 'The Angel (North London Forever)' },
   { id: 'QCPQpq83MKc', club: 'arsenal', title: 'North London Forever · Emirates' },
+  { id: '9JdugskAcS0', club: 'barcelona', title: 'Cant del Barça' },
+  { id: 'Yc-7IQqcqeM', club: 'realmadrid', title: 'Hala Madrid... y nada más' },
+  { id: 'deCvdd2J5Qs', club: 'realmadrid', title: 'Hala Madrid... y nada más · Bernabéu' },
 ];
 
 // Lịch thi đấu sắp tới trên bảng lớn trong hang. Lấy từ API công khai (không chính thức) của ESPN, mã đội theo ESPN.
@@ -91,17 +106,45 @@ export const FIXTURE_TEAMS = [
   { espnId: 360, name: 'Man Utd' },
   { espnId: 363, name: 'Chelsea' },
   { espnId: 359, name: 'Arsenal' },
+  { espnId: 83, name: 'Barcelona' },
+  { espnId: 86, name: 'Real Madrid' },
 ];
 
-// Chân dung treo tường. Có ảnh thì đặt vào public/images/legends/ và điền `img`.
-// Màu CLB cho tranh chân dung. Ảnh thật (giấy phép tự do từ Wikimedia) nằm ở src/legendPhotos.js.
+// CLB: màu tranh chân dung (colors/accent) và áo đấu nhân vật (kit).
+// Áo đấu chỉ là màu truyền thống + nét đặc trưng (sọc Barca, tay áo trắng Arsenal…), không logo/nhà tài trợ.
+// Ảnh thật cho tranh (giấy phép tự do từ Wikimedia) nằm ở src/legendPhotos.js.
 export const CLUBS = {
-  liverpool: { name: 'Liverpool', colors: ['#c8102e', '#5e0715'], accent: '#f6eb61' },
-  manutd: { name: 'Man Utd', colors: ['#da291c', '#4a0a05'], accent: '#fbe122' },
-  mancity: { name: 'Man City', colors: ['#6cabdd', '#1c2c5b'], accent: '#ffffff' },
-  chelsea: { name: 'Chelsea', colors: ['#034694', '#011d40'], accent: '#dba111' },
-  arsenal: { name: 'Arsenal', colors: ['#ef0107', '#5c0002'], accent: '#ffffff' },
+  liverpool: {
+    name: 'Liverpool', colors: ['#c8102e', '#5e0715'], accent: '#f6eb61',
+    kit: { body: '#c8102e', sleeve: '#c8102e', trim: '#ffffff', shorts: '#c8102e', number: '#ffffff' },
+  },
+  manutd: {
+    name: 'Man Utd', colors: ['#da291c', '#4a0a05'], accent: '#fbe122',
+    kit: { body: '#da291c', sleeve: '#da291c', trim: '#111111', shorts: '#ffffff', number: '#ffffff' },
+  },
+  mancity: {
+    name: 'Man City', colors: ['#6cabdd', '#1c2c5b'], accent: '#ffffff',
+    kit: { body: '#6cabdd', sleeve: '#6cabdd', trim: '#ffffff', shorts: '#ffffff', number: '#1c2c5b' },
+  },
+  chelsea: {
+    name: 'Chelsea', colors: ['#034694', '#011d40'], accent: '#dba111',
+    kit: { body: '#034694', sleeve: '#034694', trim: '#ffffff', shorts: '#034694', number: '#ffffff' },
+  },
+  arsenal: {
+    name: 'Arsenal', colors: ['#ef0107', '#5c0002'], accent: '#ffffff',
+    kit: { body: '#ef0107', sleeve: '#ffffff', trim: '#ffffff', shorts: '#ffffff', number: '#ffffff' },
+  },
+  barcelona: {
+    name: 'Barcelona', colors: ['#004d98', '#a50044'], accent: '#edbb00',
+    kit: { body: '#004d98', stripe: '#a50044', sleeve: '#a50044', trim: '#edbb00', shorts: '#004d98', number: '#edbb00' },
+  },
+  realmadrid: {
+    name: 'Real Madrid', colors: ['#e9ecf2', '#1c2c5b'], accent: '#febe10',
+    kit: { body: '#f7f7f7', sleeve: '#f7f7f7', trim: '#febe10', shorts: '#f7f7f7', number: '#1c2c5b' },
+  },
 };
+// Thứ tự hiện trong hộp chọn CLB khi vào hang.
+export const CLUB_ORDER = ['liverpool', 'manutd', 'mancity', 'chelsea', 'arsenal', 'barcelona', 'realmadrid'];
 
 // Huyền thoại từ những năm 2000 tới gần đây; số áo là số gắn liền với họ ở CLB đó.
 export const LEGENDS = [
@@ -184,6 +227,33 @@ export const LEGENDS = [
   { name: 'Declan Rice', club: 'arsenal', number: 41, years: 'từ 2023' },
   { name: 'William Saliba', club: 'arsenal', number: 2, years: 'từ 2019' },
   { name: 'Gabriel Martinelli', club: 'arsenal', number: 11, years: 'từ 2019' },
+  { name: 'Lionel Messi', club: 'barcelona', number: 10, years: '2004–2021' },
+  { name: 'Andrés Iniesta', club: 'barcelona', number: 8, years: '2002–2018' },
+  { name: 'Carles Puyol', club: 'barcelona', number: 5, years: '1999–2014' },
+  { name: 'Ronaldinho', club: 'barcelona', number: 10, years: '2003–2008' },
+  { name: 'Sergio Busquets', club: 'barcelona', number: 5, years: '2008–2023' },
+  { name: 'Gerard Piqué', club: 'barcelona', number: 3, years: '2008–2022' },
+  { name: 'Víctor Valdés', club: 'barcelona', number: 1, years: '2002–2014' },
+  { name: "Samuel Eto'o", club: 'barcelona', number: 9, years: '2004–2009' },
+  { name: 'Neymar', club: 'barcelona', number: 11, years: '2013–2017' },
+  { name: 'Robert Lewandowski', club: 'barcelona', number: 9, years: 'từ 2022' },
+  { name: 'Pedri', club: 'barcelona', number: 8, years: 'từ 2020' },
+  { name: 'Lamine Yamal', club: 'barcelona', number: 10, years: 'từ 2023' },
+  { name: 'Raúl', club: 'realmadrid', number: 7, years: '1994–2010' },
+  { name: 'Iker Casillas', club: 'realmadrid', number: 1, years: '1999–2015' },
+  { name: 'Sergio Ramos', club: 'realmadrid', number: 4, years: '2005–2021' },
+  { name: 'Zinedine Zidane', club: 'realmadrid', number: 5, years: '2001–2006' },
+  { name: 'Roberto Carlos', club: 'realmadrid', number: 3, years: '1996–2007' },
+  { name: 'Luka Modrić', club: 'realmadrid', number: 10, years: '2012–2025' },
+  { name: 'Toni Kroos', club: 'realmadrid', number: 8, years: '2014–2024' },
+  { name: 'Karim Benzema', club: 'realmadrid', number: 9, years: '2009–2023' },
+  { name: 'Marcelo', club: 'realmadrid', number: 12, years: '2007–2022' },
+  { name: 'Gareth Bale', club: 'realmadrid', number: 11, years: '2013–2022' },
+  { name: 'Vinícius Júnior', club: 'realmadrid', number: 7, years: 'từ 2018' },
+  { name: 'Jude Bellingham', club: 'realmadrid', number: 5, years: 'từ 2023' },
+  { name: 'Kylian Mbappé', club: 'realmadrid', number: 10, years: 'từ 2024' },
+  { name: 'Luís Figo', club: 'realmadrid', number: 10, years: '2000–2005' },
+  { name: 'David Beckham', club: 'realmadrid', number: 23, years: '2003–2007' },
 ];
 
 // Số tranh treo cùng lúc trên vách; phần còn lại của LEGENDS thay phiên.

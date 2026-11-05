@@ -9,7 +9,7 @@ export function connect(profile, handlers) {
     ws = new WebSocket(`${proto}://${location.host}/ws`);
     ws.onopen = () => {
       retry = 0;
-      ws.send(JSON.stringify({ t: 'join', name: profile.name, number: profile.number }));
+      ws.send(JSON.stringify({ t: 'join', name: profile.name, number: profile.number, club: profile.club }));
       handlers.status?.('online');
     };
     ws.onmessage = (e) => {
