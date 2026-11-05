@@ -1,23 +1,24 @@
 import * as THREE from 'three';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { CSS3DObject, CSS3DRenderer } from 'three/addons/renderers/CSS3DRenderer.js';
-import { BRAND, CLUB_ORDER, CLUBS, FIXTURE_TEAMS, FAN_SONGS, LEGENDS, POLL, POSTER_SLOTS, POSTER_SWAP_MS, SCOREBOARD } from './config.js';
+import { ARENA, BALL, BRAND, CLUB_ORDER, CLUBS, FIXTURE_TEAMS, FAN_SONGS, LEGENDS, POLL, POSTER_SLOTS, POSTER_SWAP_MS, SCOREBOARD } from './config.js';
 import { createAvatar } from './avatar.js';
 import { LEGEND_PHOTOS } from './legendPhotos.js';
 import { createBanners, latestOutcomes } from './banners.js';
+import { createBallView } from './ball.js';
 import { createAudio } from './audio.js';
 import { connect } from './net.js';
 import { createCampfire, createTorch, rng, rockGeometry, rockMaterial, textCanvas } from './scenery.js';
 import { el } from './util.js';
 
-const CAVE_RADIUS = 21;
-const FIRE_RADIUS = 1.4;
-const WALK_SPEED = 5;
+const CAVE_RADIUS = ARENA.caveRadius;
+const FIRE_RADIUS = ARENA.fireRadius;
+const WALK_SPEED = ARENA.walkSpeed;
 const PUNCH_RANGE = 2.2;
 const MAX_HP = 5; // khớp với server/index.js
 const SEND_INTERVAL = 1 / 15;
-const SCREEN_Z = -17;
-const SCREEN_HALF_W = 9.6; // nửa bề ngang khung màn hình, để chặn người chơi đi xuyên
+const SCREEN_Z = ARENA.screenZ;
+const SCREEN_HALF_W = ARENA.screenHalfW; // nửa bề ngang khung màn hình, để chặn người chơi đi xuyên
 // Bảng kết quả gần đây: đứng bên trái màn hình lớn, xoay về giữa hang.
 const RESULTS_POS = { x: -14.5, z: -12.5 };
 const RESULTS_W = 6.4;
@@ -1095,7 +1096,7 @@ function buildHud(app, { onLeave }) {
     const rows = [
       [['W', 'A', 'S', 'D'], 'Đi lại'],
       [['Chuột'], 'Xoay góc nhìn (bấm vào cảnh để khoá chuột, Esc để thả)'],
-      [['F', 'Click'], 'Đấm người trong vòng đỏ trước mặt'],
+      [['F', 'Click'], 'Đấm người trong vòng đỏ, hoặc sút bóng khi đứng gần bóng (đi chạm vào bóng là rê)'],
       [['G'], 'Ăn mừng'],
       [['T'], 'Ném cà chua vào cờ đội vừa thua (ở Góc cà chua)'],
       [['Enter'], 'Chat'],
@@ -1174,6 +1175,8 @@ export function mountCave(app, { profile, onLeave }) {
   });
   const resultsBoard = buildResultsBoard(scene);
   // Cờ chiến thắng (đội vừa thắng) và Góc cà chua (đội vừa thua), dựa trên kết quả gần nhất.
+  // Quả bóng chung + hai khung thành (vị trí bóng do server quyết định, xem server/ball.js).
+  const ballView = BALL.enabled ? createBallView(scene, { fontsReady: canvasFontsReady }) : null;
   const banners = createBanners(scene, {
     ceilingAt: (r) => Math.sqrt(Math.max(0, 1 - (r / DOME_R) ** 2)) * DOME_R * DOME_SY,
     fontsReady: canvasFontsReady,
@@ -1378,6 +1381,10 @@ export function mountCave(app, { profile, onLeave }) {
       hud.log.replaceChildren();
       msg.chat.forEach(hud.addChat);
       banners.setTomatoes(msg.tomatoes ?? {});
+      if (msg.ball) {
+        ballView?.setState(msg.ball.b);
+        ballView?.setScore(msg.ball.score);
+      }
       applyPolls(msg.polls ?? []);
       updateCount();
       loading.remove();
@@ -1392,6 +1399,7 @@ export function mountCave(app, { profile, onLeave }) {
       updateCount();
     },
     state(msg) {
+      ballView?.setState(msg.b);
       for (const [id, x, z, ry, a] of msg.ps) {
         const o = others.get(id);
         if (!o) continue;
@@ -1429,6 +1437,23 @@ export function mountCave(app, { profile, onLeave }) {
     revive(msg) {
       setHealth(msg.id, msg.hp, 0);
       if (msg.id === myId) hud.showToast('✨ Bạn đã hồi sinh!');
+    },
+    kick(msg) {
+      if (msg.by === myId) return; // tiếng sút của mình đã phát lúc bấm
+      const av = others.get(msg.by)?.avatar;
+      av?.punch();
+      if (av && Math.hypot(av.root.position.x - me.pos.x, av.root.position.z - me.pos.z) < 14) audio.punch();
+    },
+    goal(msg) {
+      ballView?.setScore(msg.score);
+      const g = ballView?.goalPosition(msg.side);
+      if (g) {
+        confetti.burst(g);
+        confetti.burst({ x: g.x * 0.94, z: g.z + 1 });
+      }
+      hud.showToast(`⚽ VÀOOOO! ${nameOf(msg.by)} ghi bàn!`);
+      audio.cheer();
+      avatarOf(msg.by)?.celebrate();
     },
     tomato(msg) {
       const from = msg.by === myId ? me.pos : avatarOf(msg.by)?.root.position;
@@ -1584,9 +1609,29 @@ export function mountCave(app, { profile, onLeave }) {
       return;
     }
     const target = punchTarget();
+    // Bóng gần hơn người đứng cạnh thì sút bóng, không đấm.
+    const bd = ballDistance();
+    const td = target ? Math.hypot(target.avatar.root.position.x - me.pos.x, target.avatar.root.position.z - me.pos.z) : Infinity;
+    if (bd <= BALL.kickRange && bd < td) {
+      const b = ballView.position;
+      const dx = (b.x - me.pos.x) / (bd || 1);
+      const dz = (b.z - me.pos.z) / (bd || 1);
+      me.ry = Math.atan2(dx, dz);
+      me.avatar.punch(); // vung chân… bằng tay, cho có động tác
+      ballView.nudge(dx, dz);
+      audio.punch();
+      net.send({ t: 'kick' });
+      return;
+    }
     if (!target) return;
     me.ry = Math.atan2(target.avatar.root.position.x - me.pos.x, target.avatar.root.position.z - me.pos.z);
     net.send({ t: 'punch', target: target.id });
+  }
+
+  // Khoảng cách tới quả bóng (Infinity nếu tắt bóng hoặc đang là ma).
+  function ballDistance() {
+    if (!ballView || me.avatar.ghost) return Infinity;
+    return Math.hypot(ballView.position.x - me.pos.x, ballView.position.z - me.pos.z);
   }
 
   function doCelebrate() {
@@ -1759,8 +1804,11 @@ export function mountCave(app, { profile, onLeave }) {
       ring.color.set(o === target ? '#ff3b30' : '#ffffff');
       ring.opacity = o === target ? 0.9 : 0;
     }
-    hud.punchHint.classList.toggle('show', !!target && !hud.isTouch && document.pointerLockElement !== canvas);
-    hud.punchTouch.classList.toggle('ready', !!target);
+    const canKick = ballDistance() <= BALL.kickRange;
+    const hintText = canKick ? '⚽ Nhấn F để sút' : '👊 Nhấn F để đấm';
+    if (hud.punchHint.textContent !== hintText) hud.punchHint.textContent = hintText;
+    hud.punchHint.classList.toggle('show', (!!target || canKick) && !hud.isTouch && document.pointerLockElement !== canvas);
+    hud.punchTouch.classList.toggle('ready', !!target || canKick);
     hud.setGhostCountdown(myGhostUntil ? Math.max(1, Math.ceil((myGhostUntil - now) / 1000)) : 0);
 
     // Gửi vị trí ~15 lần/giây, chỉ khi có thay đổi.
@@ -1798,6 +1846,7 @@ export function mountCave(app, { profile, onLeave }) {
     torches.forEach((tc) => tc.update(t));
     gallery.update(dt);
     banners.update(dt);
+    ballView?.update(dt);
     confetti.update(dt);
 
     renderer.render(scene, camera);

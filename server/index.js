@@ -3,13 +3,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
-import { CLUBS, FIXTURE_TEAMS, POLL } from '../src/config.js';
+import { ARENA, BALL, CLUBS, FIXTURE_TEAMS, POLL } from '../src/config.js';
+import { createBall } from './ball.js';
 
 // Khi dev, Vite chiếm PORT (nếu có) nên server luôn ở 8787 để khớp proxy trong vite.config.js.
 const PORT = process.argv.includes('--dev') ? 8787 : Number(process.env.PORT) || 8787;
 const DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist');
 const TICK_MS = 66; // ~15 lần/giây
-const CAVE_RADIUS = 21;
+const CAVE_RADIUS = ARENA.caveRadius;
+// Chống dịch chuyển tức thời: mỗi tin `move` chỉ được đi tối đa tốc độ này (đi bộ + bật lùi khi bị đấm)
+// nhân thời gian trôi qua, cộng một khoảng dư cho trễ mạng.
+const MAX_MOVE_SPEED = ARENA.walkSpeed + ARENA.knockSpeed;
+const MOVE_SLACK = 3; // trần quỹ quãng đường (đơn vị) cho tin đến dồn cục
+const KICK_COOLDOWN_MS = 400;
 const PUNCH_RANGE = 2.4;
 const PUNCH_COOLDOWN_MS = 700;
 const CHAT_COOLDOWN_MS = 800;
@@ -266,6 +272,9 @@ wss.on('connection', (ws) => {
         ghostUntil: 0,
         lastPunch: 0,
         lastChat: 0,
+        lastMoveAt: 0, // 0 = tin `move` đầu tiên (vị trí xuất hiện do server đặt) được miễn giới hạn tốc độ
+        vx: 0,
+        vz: 0,
       };
       players.set(me.id, me);
       send(ws, {
@@ -275,6 +284,7 @@ wss.on('connection', (ws) => {
         chat: chatLog,
         polls: pollList(me.id),
         tomatoes,
+        ball: ball ? { b: ball.snapshot(), score: ball.score } : null,
       });
       refreshPolls().catch(() => {});
       broadcast({ t: 'join', p: publicInfo(me) }, me.id);
@@ -290,10 +300,40 @@ wss.on('connection', (ws) => {
         if (!Number.isFinite(x) || !Number.isFinite(z)) return;
         const r = Math.hypot(x, z);
         const k = r > CAVE_RADIUS ? CAVE_RADIUS / r : 1;
-        me.x = x * k;
-        me.z = z * k;
+        let nx = x * k;
+        let nz = z * k;
+        const dt = me.lastMoveAt ? Math.min(1, (now - me.lastMoveAt) / 1000) : 0;
+        if (me.lastMoveAt) {
+          // "Quỹ quãng đường": đầy dần theo thời gian thật với tốc độ tối đa, có trần (MOVE_SLACK) để
+          // chịu được tin dồn cục do mạng. Gửi dồn nhiều tin hay đứng lâu rồi nhảy đều không đi xa hơn được.
+          me.moveBudget = Math.min(MOVE_SLACK, (me.moveBudget ?? MOVE_SLACK) + MAX_MOVE_SPEED * dt);
+          const dx = nx - me.x;
+          const dz = nz - me.z;
+          const d = Math.hypot(dx, dz);
+          if (d > me.moveBudget) {
+            // Kẹp lại chứ không bỏ tin, để máy mạng chập chờn không bị kẹt đứng.
+            nx = me.x + (dx / d) * me.moveBudget;
+            nz = me.z + (dz / d) * me.moveBudget;
+          }
+          me.moveBudget -= Math.min(d, me.moveBudget);
+          // Vận tốc thật (đã kẹp) để quả bóng biết người chơi đang chạy hướng nào.
+          if (dt > 0.01) {
+            me.vx = (nx - me.x) / dt;
+            me.vz = (nz - me.z) / dt;
+          }
+        }
+        me.lastMoveAt = now;
+        me.x = nx;
+        me.z = nz;
         me.ry = Number(msg.ry) || 0;
         me.a = msg.a | 0;
+        if (!me.a) me.vx = me.vz = 0;
+        break;
+      }
+      case 'kick': {
+        if (!ball || now - (me.lastKick ?? 0) < KICK_COOLDOWN_MS) return;
+        me.lastKick = now;
+        if (ball.kick(me)) broadcast({ t: 'kick', by: me.id });
         break;
       }
       case 'chat': {
@@ -350,8 +390,21 @@ wss.on('connection', (ws) => {
     if (!me) return;
     players.delete(me.id);
     broadcast({ t: 'leave', id: me.id });
+    // Người cuối rời hang: đưa bóng về chỗ cũ cho người vào sau.
+    if (players.size === 0) ball?.reset();
   });
 });
+
+// --- Quả bóng chung ------------------------------------------------------------
+const ball = BALL.enabled
+  ? createBall({
+      onGoal({ side, scorerId, score }) {
+        const scorer = players.get(scorerId);
+        broadcast({ t: 'goal', side, by: scorerId, score });
+        pushChat({ sys: true, text: `⚽ VÀOOOO! ${scorer ? scorer.name : 'Ai đó'} ghi bàn · Tây ${score.west} - ${score.east} Đông` });
+      },
+    })
+  : null;
 
 setInterval(() => {
   if (players.size === 0) return;
@@ -364,8 +417,9 @@ setInterval(() => {
       pushChat({ sys: true, text: `✨ ${p.name} đã hồi sinh` });
     }
   }
+  ball?.step(TICK_MS / 1000, players.values());
   const ps = [...players.values()].map((p) => [p.id, +p.x.toFixed(2), +p.z.toFixed(2), +p.ry.toFixed(2), p.a]);
-  broadcast({ t: 'state', ps });
+  broadcast({ t: 'state', ps, b: ball?.snapshot() });
 }, TICK_MS);
 
 // Kiểm trận gần nhất mỗi phút (dữ liệu lịch đã cache 30 phút nên không gọi ESPN dồn dập).
