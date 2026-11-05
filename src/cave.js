@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { CSS3DObject, CSS3DRenderer } from 'three/addons/renderers/CSS3DRenderer.js';
-import { BRAND, CLUBS, FIXTURE_TEAMS, LEGENDS, POLL, SCOREBOARD } from './config.js';
+import { BRAND, CLUBS, FIXTURE_TEAMS, FAN_SONGS, LEGENDS, POLL, POSTER_SLOTS, POSTER_SWAP_MS, SCOREBOARD } from './config.js';
 import { createAvatar } from './avatar.js';
 import { LEGEND_PHOTOS } from './legendPhotos.js';
 import { createAudio } from './audio.js';
@@ -134,10 +134,16 @@ function buildCave(scene) {
   const GAP_LEFT = RESULTS_GAP;
   const start = -Math.PI / 2 + GAP_RIGHT;
   const span = Math.PI * 2 - GAP_RIGHT - GAP_LEFT;
-  LEGENDS.forEach((legend, i) => {
-    const a = start + (span * (i + 0.5)) / LEGENDS.length;
-    addPoster(scene, legend, a, wallR);
-  });
+  // Ban đầu treo nhóm đầu của LEGENDS (đã xếp theo CLB); cầu thủ còn lại thay phiên dần.
+  const slots = Math.min(POSTER_SLOTS, LEGENDS.length);
+  const posters = [];
+  for (let i = 0; i < slots; i++) {
+    const a = start + (span * (i + 0.5)) / slots;
+    posters.push(createPoster(scene, LEGENDS[i], a, wallR));
+  }
+  const gallery = createGallery(posters);
+  // Chỉ bản dev: xem cầu thủ đang treo để kiểm việc thay phiên.
+  if (import.meta.env.DEV) window.__hangPosters = () => posters.map((p) => p.legend.name);
   // Đuốc và cờ treo cao phía trên hàng chân dung.
   for (let i = 0; i < 10; i++) {
     const a = (i / 10) * Math.PI * 2 + 0.31;
@@ -156,7 +162,7 @@ function buildCave(scene) {
     scene.add(banner);
   }
 
-  return { fire, torches };
+  return { fire, torches, gallery };
 }
 
 /** Bảng "Kết quả gần đây" đặt cạnh màn hình lớn. Trả về setResults(matches). */
@@ -273,107 +279,175 @@ function canvasFontsReady() {
   return fontsPromise;
 }
 
-function addPoster(scene, legend, angle, r) {
-  const club = CLUBS[legend.club] ?? { name: '', colors: [BRAND.jersey.body, '#0d1a44'], accent: '#fff' };
+const POSTER_PHOTO_H = 372;
+
+function clubOf(legend) {
+  return CLUBS[legend.club] ?? { name: '', colors: [BRAND.jersey.body, '#0d1a44'], accent: '#fff' };
+}
+
+/** Vẽ một tranh chân dung: ảnh thật (nếu có) hoặc bóng người, dải tên, ghi công ảnh. */
+function drawPoster(g, w, h, legend, photo) {
+  const club = clubOf(legend);
   const credit = LEGEND_PHOTOS[legend.name];
-  let photo = null;
-  const PHOTO_H = 372;
+  const PHOTO_H = POSTER_PHOTO_H;
+  const grad = g.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, club.colors[0]);
+  grad.addColorStop(1, club.colors[1]);
+  g.fillStyle = grad;
+  g.fillRect(0, 0, w, h);
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
 
-  const draw = (g, w, h) => {
-    const grad = g.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, club.colors[0]);
-    grad.addColorStop(1, club.colors[1]);
-    g.fillStyle = grad;
-    g.fillRect(0, 0, w, h);
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-
-    if (photo) {
-      // Ảnh thật, cắt kiểu "cover" và ưu tiên phần trên (mặt người).
-      const s = Math.max(w / photo.width, PHOTO_H / photo.height);
-      const dw = photo.width * s;
-      const dh = photo.height * s;
-      g.drawImage(photo, (w - dw) / 2, Math.min(0, (PHOTO_H - dh) * 0.25), dw, dh);
-      const fade = g.createLinearGradient(0, PHOTO_H - 90, 0, PHOTO_H);
-      fade.addColorStop(0, 'rgba(0,0,0,0)');
-      fade.addColorStop(1, club.colors[1]);
-      g.fillStyle = fade;
-      g.fillRect(0, PHOTO_H - 90, w, 90);
-      // Huy hiệu số áo ở góc.
-      g.fillStyle = club.colors[0];
-      g.beginPath();
-      g.arc(w - 44, 44, 32, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = club.accent;
-      g.font = '800 34px Bitter, Georgia, serif';
-      g.fillText(String(legend.number ?? ''), w - 44, 46);
-    } else {
-      // Chưa có ảnh: bóng người + số áo.
-      g.globalAlpha = 0.22;
-      g.fillStyle = '#fff';
-      g.font = '800 300px Bitter, Georgia, serif';
-      g.fillText(String(legend.number ?? ''), w / 2, 200);
-      g.globalAlpha = 1;
-      g.fillStyle = 'rgba(0, 0, 0, 0.35)';
-      g.beginPath();
-      g.arc(w / 2, 150, 58, 0, Math.PI * 2);
-      g.fill();
-      g.beginPath();
-      g.moveTo(w / 2 - 120, 360);
-      g.quadraticCurveTo(w / 2 - 110, 225, w / 2, 220);
-      g.quadraticCurveTo(w / 2 + 110, 225, w / 2 + 120, 360);
-      g.fill();
-      g.fillStyle = club.accent;
-      g.font = '800 64px Bitter, Georgia, serif';
-      g.fillText(String(legend.number ?? ''), w / 2, 300);
-    }
-
-    // Dải tên phía dưới.
-    g.fillStyle = 'rgba(0, 0, 0, 0.6)';
-    g.fillRect(0, PHOTO_H, w, h - PHOTO_H);
+  if (photo) {
+    // Ảnh thật, cắt kiểu "cover" và ưu tiên phần trên (mặt người).
+    const s = Math.max(w / photo.width, PHOTO_H / photo.height);
+    const dw = photo.width * s;
+    const dh = photo.height * s;
+    g.drawImage(photo, (w - dw) / 2, Math.min(0, (PHOTO_H - dh) * 0.25), dw, dh);
+    const fade = g.createLinearGradient(0, PHOTO_H - 90, 0, PHOTO_H);
+    fade.addColorStop(0, 'rgba(0,0,0,0)');
+    fade.addColorStop(1, club.colors[1]);
+    g.fillStyle = fade;
+    g.fillRect(0, PHOTO_H - 90, w, 90);
+    // Huy hiệu số áo ở góc.
+    g.fillStyle = club.colors[0];
+    g.beginPath();
+    g.arc(w - 44, 44, 32, 0, Math.PI * 2);
+    g.fill();
     g.fillStyle = club.accent;
-    g.fillRect(0, PHOTO_H, w, 5);
+    g.font = '800 34px Bitter, Georgia, serif';
+    g.fillText(String(legend.number ?? ''), w - 44, 46);
+  } else {
+    // Chưa có ảnh: bóng người + số áo.
+    g.globalAlpha = 0.22;
     g.fillStyle = '#fff';
-    let size = 40;
-    g.font = `800 ${size}px Bitter, Georgia, serif`;
-    while (g.measureText(legend.name).width > w - 30 && size > 24) g.font = `800 ${(size -= 2)}px Bitter, Georgia, serif`;
-    g.fillText(legend.name, w / 2, 412);
-    g.font = '600 24px "Be Vietnam Pro", sans-serif';
+    g.font = '800 300px Bitter, Georgia, serif';
+    g.fillText(String(legend.number ?? ''), w / 2, 200);
+    g.globalAlpha = 1;
+    g.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    g.beginPath();
+    g.arc(w / 2, 150, 58, 0, Math.PI * 2);
+    g.fill();
+    g.beginPath();
+    g.moveTo(w / 2 - 120, 360);
+    g.quadraticCurveTo(w / 2 - 110, 225, w / 2, 220);
+    g.quadraticCurveTo(w / 2 + 110, 225, w / 2 + 120, 360);
+    g.fill();
     g.fillStyle = club.accent;
-    g.fillText(`${club.name} · ${legend.years ?? ''}`, w / 2, 452);
-    if (credit) {
-      // Ghi công theo yêu cầu của giấy phép CC.
-      let line = `Ảnh: ${credit.artist} · ${credit.license}`;
-      g.font = '500 15px "Be Vietnam Pro", sans-serif';
-      g.fillStyle = 'rgba(255,255,255,0.7)';
-      while (g.measureText(line).width > w - 20 && line.length > 10) line = `${line.slice(0, -4)}…`;
-      g.fillText(line, w / 2, 490);
-    }
-  };
-  const tex = textCanvas(384, 512, draw);
-  const redraw = () => {
-    draw(tex.image.getContext('2d'), tex.image.width, tex.image.height);
-    tex.needsUpdate = true;
-  };
-  // Vẽ lại khi font (có dấu tiếng Việt, ü, č…) và ảnh đã tải xong.
-  canvasFontsReady().then(redraw);
-  if (credit) {
-    const img = new Image();
-    img.onload = () => {
-      photo = img;
-      canvasFontsReady().then(redraw);
-    };
-    img.src = credit.img;
+    g.font = '800 64px Bitter, Georgia, serif';
+    g.fillText(String(legend.number ?? ''), w / 2, 300);
   }
+
+  // Dải tên phía dưới.
+  g.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  g.fillRect(0, PHOTO_H, w, h - PHOTO_H);
+  g.fillStyle = club.accent;
+  g.fillRect(0, PHOTO_H, w, 5);
+  g.fillStyle = '#fff';
+  let size = 40;
+  g.font = `800 ${size}px Bitter, Georgia, serif`;
+  while (g.measureText(legend.name).width > w - 30 && size > 24) g.font = `800 ${(size -= 2)}px Bitter, Georgia, serif`;
+  g.fillText(legend.name, w / 2, 412);
+  g.font = '600 24px "Be Vietnam Pro", sans-serif';
+  g.fillStyle = club.accent;
+  g.fillText(`${club.name} · ${legend.years ?? ''}`, w / 2, 452);
+  if (credit) {
+    // Ghi công theo yêu cầu của giấy phép CC.
+    let line = `Ảnh: ${credit.artist} · ${credit.license}`;
+    g.font = '500 15px "Be Vietnam Pro", sans-serif';
+    g.fillStyle = 'rgba(255,255,255,0.7)';
+    while (g.measureText(line).width > w - 20 && line.length > 10) line = `${line.slice(0, -4)}…`;
+    g.fillText(line, w / 2, 490);
+  }
+}
+
+/** Tạo texture tranh: vẽ ngay bản tạm, trả về promise xong khi font + ảnh đã tải và đã vẽ lại. */
+function makePosterTexture(legend) {
+  const tex = textCanvas(384, 512, (g, w, h) => drawPoster(g, w, h, legend, null));
+  const credit = LEGEND_PHOTOS[legend.name];
+  const photo = credit
+    ? new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = credit.img;
+      })
+    : Promise.resolve(null);
+  const ready = Promise.all([canvasFontsReady(), photo]).then(([, img]) => {
+    drawPoster(tex.image.getContext('2d'), tex.image.width, tex.image.height, legend, img);
+    tex.needsUpdate = true;
+    return tex;
+  });
+  return { tex, ready };
+}
+
+/** Một khung tranh treo vách; show() lật tranh sang cầu thủ khác. */
+function createPoster(scene, legend, angle, r) {
+  const first = makePosterTexture(legend);
   // Tự sáng nhẹ để vẫn đọc được tên khi đứng xa đuốc.
-  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0.45 });
+  const mat = new THREE.MeshStandardMaterial({ map: first.tex, roughness: 0.7, emissive: '#ffffff', emissiveMap: first.tex, emissiveIntensity: 0.45 });
+  const pivot = new THREE.Group();
+  pivot.position.set(Math.cos(angle) * r, 3.4, Math.sin(angle) * r);
+  pivot.lookAt(0, 3.4, 0);
   const poster = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 2.8), mat);
   const frame = new THREE.Mesh(new THREE.BoxGeometry(2.35, 3.05, 0.08), new THREE.MeshStandardMaterial({ color: '#3a2618' }));
   frame.position.z = -0.05;
-  poster.add(frame);
-  poster.position.set(Math.cos(angle) * r, 3.4, Math.sin(angle) * r);
-  poster.lookAt(0, 3.4, 0);
-  scene.add(poster);
+  pivot.add(frame, poster);
+  scene.add(pivot);
+
+  const FLIP = 0.7; // giây cho cả lượt lật
+  let flip = null; // { t, next: texture đã sẵn sàng, swapped }
+  return {
+    legend,
+    get busy() {
+      return !!flip;
+    },
+    async show(next) {
+      if (flip) return;
+      this.legend = next;
+      const { ready } = makePosterTexture(next);
+      flip = { t: 0, next: await ready, swapped: false };
+    },
+    update(dt) {
+      if (!flip) return;
+      flip.t += dt;
+      const k = Math.min(1, flip.t / FLIP);
+      // Lật quanh trục dọc: thu về 0 rồi mở ra với tranh mới.
+      poster.scale.x = Math.abs(Math.cos(k * Math.PI));
+      if (k >= 0.5 && !flip.swapped) {
+        const old = mat.map;
+        mat.map = flip.next;
+        mat.emissiveMap = flip.next;
+        mat.needsUpdate = true;
+        old.dispose();
+        flip.swapped = true;
+      }
+      if (k >= 1) {
+        poster.scale.x = 1;
+        flip = null;
+      }
+    },
+  };
+}
+
+/** Thay phiên tranh: cứ POSTER_SWAP_MS lại đổi một khung sang cầu thủ chưa treo, cùng CLB với khung đó. */
+function createGallery(posters) {
+  // Đếm theo đồng hồ thật: dt của khung hình bị giới hạn khi máy chậm, sẽ làm nhịp đổi tranh chậm theo.
+  let lastSwap = performance.now();
+  return {
+    update(dt) {
+      for (const p of posters) p.update(dt);
+      const now = performance.now();
+      if (now - lastSwap < POSTER_SWAP_MS) return;
+      lastSwap = now;
+      const shown = new Set(posters.map((p) => p.legend.name));
+      const idle = posters.filter((p) => !p.busy);
+      const slot = idle[Math.floor(Math.random() * idle.length)];
+      if (!slot) return;
+      const pool = LEGENDS.filter((l) => l.club === slot.legend.club && !shown.has(l.name));
+      if (pool.length) slot.show(pool[Math.floor(Math.random() * pool.length)]);
+    },
+  };
 }
 
 function buildScreen(scene, css3dScene, { onVideoError } = {}) {
@@ -686,6 +760,88 @@ function capture(node, pointerId) {
   }
 }
 
+/**
+ * Nhạc cổ động viên: trình phát YouTube ẩn, phát ngẫu nhiên lần lượt các bài trong FAN_SONGS.
+ * Trình duyệt chỉ cho phát tiếng sau khi người chơi bấm/gõ phím, nên start() gọi từ thao tác đầu tiên.
+ */
+function createFanMusic({ onSong } = {}) {
+  const songs = FAN_SONGS.slice();
+  const blocked = new Set();
+  let current = null;
+  let player = null;
+  let ready = null;
+  let playing = false;
+  let volume = 35;
+  // Không đặt display:none: một số trình duyệt không phát iframe bị ẩn hẳn.
+  const host = el('div', { style: 'position:fixed;left:-10px;top:-10px;width:1px;height:1px;opacity:0;pointer-events:none' }, el('div'));
+  document.body.append(host);
+
+  function pick() {
+    const pool = songs.filter((s) => s !== current && !blocked.has(s.id));
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+  }
+  function ensure() {
+    ready ??= loadYouTubeApi().then(
+      (YT) =>
+        new Promise((resolve) => {
+          player = new YT.Player(host.firstChild, {
+            host: 'https://www.youtube-nocookie.com',
+            width: 1,
+            height: 1,
+            playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, rel: 0, playsinline: 1, origin: location.origin },
+            events: {
+              onReady: () => resolve(player),
+              onStateChange: (e) => e.data === YT.PlayerState.ENDED && playing && next(),
+              onError: () => {
+                if (current) blocked.add(current.id);
+                if (playing) next();
+              },
+            },
+          });
+        }),
+    );
+    return ready;
+  }
+  async function next() {
+    const song = pick();
+    if (!song) return;
+    current = song;
+    const p = await ensure();
+    p.loadVideoById(song.id);
+    p.unMute();
+    p.setVolume(volume);
+    onSong?.(song);
+  }
+  return {
+    get playing() {
+      return playing;
+    },
+    async start() {
+      if (playing) return;
+      playing = true;
+      if (current && player) {
+        player.playVideo();
+        onSong?.(current);
+      } else await next();
+    },
+    stop() {
+      playing = false;
+      player?.pauseVideo?.();
+    },
+    next() {
+      if (playing) next();
+    },
+    setVolume(v) {
+      volume = Math.round(v * 60); // nhạc nền nhỏ hơn hiệu ứng
+      player?.setVolume?.(volume);
+    },
+    dispose() {
+      player?.destroy?.();
+      host.remove();
+    },
+  };
+}
+
 let ytApi = null;
 function loadYouTubeApi() {
   ytApi ??= new Promise((resolve) => {
@@ -763,7 +919,8 @@ function buildHud(app, { onLeave }) {
   const muteBtn = el('button', { className: 'pill', type: 'button', style: 'padding:6px 8px' }, '🔊');
   const videoBtn = el('button', { className: 'pill', type: 'button' }, '📺 Tiếng video');
   const myHp = el('div', { className: 'pill my-hp', 'aria-label': 'Máu của bạn' });
-  const top = el('div', { className: 'hud-top' }, leave, myHp, el('div', { className: 'pill vol' }, muteBtn, volume), videoBtn);
+  const musicBtn = el('button', { className: 'pill', type: 'button' }, '🎵 Nhạc CĐV');
+  const top = el('div', { className: 'hud-top' }, leave, myHp, el('div', { className: 'pill vol' }, muteBtn, volume), videoBtn, musicBtn);
   const ghostBanner = el('div', { className: 'ghost-banner' });
 
   const count = el('span', {}, '…');
@@ -915,6 +1072,7 @@ function buildHud(app, { onLeave }) {
       [['I'], 'Xem lại bình chọn các trận'],
       [['M'], 'Tắt / bật tiếng'],
       [['V'], 'Tắt / bật tiếng video bảng tin'],
+      [['N'], 'Đổi bài nhạc cổ động viên'],
       [['H'], 'Mở / đóng bảng này'],
     ];
     const grid = el('div', { className: 'keys-grid' });
@@ -924,7 +1082,7 @@ function buildHud(app, { onLeave }) {
   keysBtn.addEventListener('click', toggleHelp);
 
   return {
-    hud, input, log, volume, muteBtn, videoBtn, celebrate, punchHint, punchTouch, joy, isTouch,
+    hud, input, log, volume, muteBtn, videoBtn, musicBtn, celebrate, punchHint, punchTouch, joy, isTouch,
     get pollBtns() {
       return pollBtns;
     },
@@ -974,7 +1132,7 @@ export function mountCave(app, { profile, onLeave }) {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 120);
-  const { fire, torches } = buildCave(scene);
+  const { fire, torches, gallery } = buildCave(scene);
   let videoBlocked = false;
   const screen = buildScreen(scene, css3dScene, {
     onVideoError() {
@@ -1279,7 +1437,59 @@ export function mountCave(app, { profile, onLeave }) {
     videoMuted = !videoMuted;
     screen.setVideoMuted(videoMuted);
     hud.videoBtn.textContent = videoMuted ? '📺 Tiếng video' : '📺 Tắt tiếng video';
+    // Nghe tiếng video thì tạm dừng nhạc để khỏi chồng tiếng.
+    if (!videoMuted && music.playing) stopMusic();
   }
+
+  // Nhạc CĐV: tự bật ở thao tác đầu tiên (trừ khi người chơi từng tắt), nút để bật/tắt, phím N đổi bài.
+  const MUSIC_PREF = 'hanguit.music';
+  const readPref = () => {
+    try {
+      return localStorage.getItem(MUSIC_PREF);
+    } catch {
+      return null;
+    }
+  };
+  const writePref = (v) => {
+    try {
+      localStorage.setItem(MUSIC_PREF, v);
+    } catch {
+      // không lưu được thì thôi
+    }
+  };
+  const music = createFanMusic({
+    onSong(song) {
+      hud.showToast(`🎵 ${song.title} · ${CLUBS[song.club]?.name ?? ''}`);
+    },
+  });
+  music.setVolume(Number(hud.volume.value));
+  function startMusic() {
+    music.start();
+    hud.musicBtn.textContent = '🎵 Tắt nhạc';
+  }
+  function stopMusic() {
+    music.stop();
+    hud.musicBtn.textContent = '🎵 Nhạc CĐV';
+  }
+  function toggleMusic() {
+    if (music.playing) {
+      stopMusic();
+      writePref('off');
+    } else {
+      if (!videoMuted) toggleVideo();
+      startMusic();
+      writePref('on');
+    }
+  }
+  hud.musicBtn.addEventListener('click', toggleMusic);
+  const onFirstGesture = (e) => {
+    removeEventListener('pointerdown', onFirstGesture, true);
+    removeEventListener('keydown', onFirstGesture, true);
+    if (e.target === hud.musicBtn) return; // nút nhạc tự xử lý
+    if (readPref() !== 'off' && videoMuted) startMusic();
+  };
+  addEventListener('pointerdown', onFirstGesture, true);
+  addEventListener('keydown', onFirstGesture, true);
   function toggleMute() {
     const m = audio.toggleMute();
     hud.muteBtn.textContent = m ? '🔇' : '🔊';
@@ -1289,6 +1499,7 @@ export function mountCave(app, { profile, onLeave }) {
   hud.volume.addEventListener('input', () => {
     audio.unlock();
     audio.setVolume(Number(hud.volume.value));
+    music.setVolume(Number(hud.volume.value));
     hud.muteBtn.textContent = audio.muted ? '🔇' : '🔊';
   });
 
@@ -1351,6 +1562,7 @@ export function mountCave(app, { profile, onLeave }) {
     else if (k === 'm') toggleMute();
     else if (k === 'v') toggleVideo();
     else if (k >= '1' && k <= '9') vote(Number(k) - 1);
+    else if (k === 'n') music.next();
     else if (k === 'q') showPoll(sel - 1);
     else if (k === 'e') showPoll(sel + 1);
     else if (k === 'i') toggleInfo();
@@ -1511,6 +1723,7 @@ export function mountCave(app, { profile, onLeave }) {
 
     fire.update(dt);
     torches.forEach((tc) => tc.update(t));
+    gallery.update(dt);
     confetti.update(dt);
 
     renderer.render(scene, camera);
@@ -1523,6 +1736,9 @@ export function mountCave(app, { profile, onLeave }) {
     cancelAnimationFrame(raf);
     clearInterval(fixtureTimer);
     screen.dispose();
+    music.dispose();
+    removeEventListener('pointerdown', onFirstGesture, true);
+    removeEventListener('keydown', onFirstGesture, true);
     net.close();
     audio.close();
     document.exitPointerLock?.();

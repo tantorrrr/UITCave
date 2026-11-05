@@ -76,3 +76,51 @@ Server giữ mọi thứ trong bộ nhớ: khởi động lại là mất chat v
 | Robert Pirès | Doha Stadium Plus Qatar | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Robert_Pires_2011.jpg) |
 | Sol Campbell | Web Summit | CC BY 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Sol_Campbell_(54921202604)_(cropped).jpg) |
 | Bukayo Saka | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Bukayo_Saka_England_v_Ghana_23_June_2026-057_(cropped).jpg) |
+| Xabi Alonso | DONOSTIA KULTURA | CC BY-SA 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Los_Caminos_del_f%C3%BAtbol._Xabi_Alonso_(39666778464)_(cropped).jpg) |
+| Sami Hyypiä | Дмитрий Неймырок/Dmitry Neymyrok/Dmitrij Nejmyrok | CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Sami_Hyypia_2012_(cropped).jpg) |
+| Pepe Reina | Кирилл Венедиктов | CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Pepe_Reina_2017.jpg) |
+| Dirk Kuyt | User:Zafer | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Dirk_Kuyt_Fenerbah%C3%A7e_20261103_(2).JPG) |
+| Jordan Henderson | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Jordan_Henderson_England_v_Ghana_23_June_2026-029_(cropped).jpg) |
+| Roberto Firmino | Granada | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:20180610_FIFA_Friendly_Match_Austria_vs._Brazil_Roberto_Firmino_850_1557.jpg) |
+| Sadio Mané | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Sadio_Mane_France_v_Senegal_16_June_2026-450.jpg) |
+| Alisson Becker | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Alisson_Becker_Brazil_V_Morocco_13_June_2026-117_(cropped).jpg) |
+| Trent Alexander-Arnold | Антон Зайцев | CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Trent_Alexander-Arnold_2018_(cropped).jpg) |
+| Andy Robertson | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Andy_Robertson_Scotland_v_Bolivia_6_June_2026-43.jpg) |
+| Ruud van Nistelrooy | Ardfern | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Ruud_van_Nistelrooy_2017.jpg) |
+| Roy Keane | Irish Defence Forces from Ireland | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Roy_keane_2014.jpg) |
+| Gary Neville | University of Salford Press Office | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Gary_Neville_2014_(cropped).jpg) |
+| Nemanja Vidić | user:Biso | CC BY 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Vidi%C4%87_(cropped).jpg) |
+| Patrice Evra | Web Summit | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Patrice_Evra_(52472689279)_(cropped).jpg) |
+| Edwin van der Sar | Web Summit | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Edwin_van_der_Sar_2015.jpg) |
+| Park Ji-sung | Korea.net / Korean Culture and Information Service | CC BY-SA 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Park_Ji-sung_G20_Seoul_Summit_Ambassador_(cropped).jpg) |
+| Bruno Fernandes | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Bruno_Fernandes_USMNT_v_Portugal_Mar_31_2026-27_(cropped).jpg) |
+| David de Gea | Кирилл Венедиктов | CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:David_de_Gea_2017.jpg) |
+| Darren Fletcher | @cfcunofficial (Chelsea Debs) London | CC BY-SA 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Darren_Fletcher_2017_(cropped).jpg) |
+| Pablo Zabaleta | --Steindy (talk) 16:00, 29 August 2019 (UTC) | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Hertha_BSC_vs._West_Ham_United_20190731_(127).jpg) |
+| Raheem Sterling | Антон Зайцев | CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Raheem_Sterling_2018.jpg) |
+| Rodri | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Rodri_Argentina_v_Spain_19_July_2026-187_(cropped).jpg) |
+| Phil Foden | Steffen Prößdorf | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:2023-10-04_Fu%C3%9Fball,_M%C3%A4nner,_UEFA_Champions_League,_RB_Leipzig_-_Manchester_City_FC_1DX_2613,_Phil_Foden.jpg) |
+| Joe Hart | Голубович Дмитрий | CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Joe_Hart_69775.jpg) |
+| Bernardo Silva | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Bernardo_Silva_Croatia_v_Portugal_2_July_2026-238.jpg) |
+| Carlos Tevez | Egghead06 | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Carlos_Tevez_with_Argentina_November_2014_(cropped).jpg) |
+| Rúben Dias | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Ruben_Dias_Croatia_v_Portugal_2_July_2026-228_(cropped).jpg) |
+| Ashley Cole | Stanislav Vedmid | CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:ACole.JPG) |
+| Michael Essien | @cfcunofficial (Chelsea Debs) London from London, UK | CC BY-SA 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Chelsea_Legends_1_Inter_Forever_4_(28453496098)_(cropped).jpg) |
+| Claude Makélélé | Web Summit Qatar | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Claude_Mak%C3%A9l%C3%A9l%C3%A9_(53557564951)_(cropped).jpg) |
+| Arjen Robben | Sven Mandel | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:2019147183036_2019-05-27_Fussball_1.FC_Kaiserslautern_vs_FC_Bayern_M%C3%BCnchen_-_Sven_-_1D_X_MK_II_-_0196_-_B70I8495_(cropped).jpg) |
+| César Azpilicueta | محمد امین انصاری | CC BY 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:C%C3%A9sar_Azpilicueta,_Al_Hilal_SFC_vs_Chelsea_F.C.,_9_February_2022.jpg) |
+| Branislav Ivanović | Darren Walsch | CC BY 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Branislav_Ivanovi%C4%87_FC_Chelsea_Captain.jpg) |
+| Diego Costa | Mahdi Zare/Fars News Agency | CC BY 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Iran_and_Spain_match_at_the_FIFA_World_Cup_23.jpg) |
+| Thiago Silva | Granada | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:20180610_FIFA_Friendly_Match_Austria_vs._Brazil_Thiago_Silva_850_1582.jpg) |
+| Reece James | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Reece_James_England_v_Ghana_23_June_2026-248_(cropped).jpg) |
+| Cole Palmer | The White House | Public domain | [Commons](https://commons.wikimedia.org/wiki/File:Cole_Palmer_2025_FIFA_Club_World_Cup_Final.jpg) |
+| Robin van Persie | Елена Рыбакова | CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Loco-Fener_(10).jpg) |
+| Cesc Fàbregas | Web Summit | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:2023_-_Cesc_Fabregas_(cropped).jpg) |
+| Jens Lehmann | Sven Mandel | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Jens_Lehmann_-_2019202184453_2019-07-21_Champions_for_Charity_-_3017_-_B70I3052_(cropped).jpg) |
+| Freddie Ljungberg | Ludovic Péron | CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Football_against_poverty_2014_-_Fredrik_Ljungberg.jpg) |
+| Santi Cazorla | Ronnie Macdonald | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Santi_Cazorla,_2012-08-18_(cropped).jpg) |
+| Mesut Özil | Amir Hosseini | CC BY 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Mesut_%C3%96zil_at_Baku_before_2019_UEFA_Europe_League_Final.jpg) |
+| Martin Ødegaard | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Martin_Odegaard_France_v_Norway_26_June_26-014.jpg) |
+| Declan Rice | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Declan_Rice_England_v_Ghana_23_June_2026-150.jpg) |
+| William Saliba | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:William_Saliba_France_v_Paraguay_4_July_2026-183.jpg) |
+| Gabriel Martinelli | Bryan Berlin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Gabriel_Martinelli_Brazil_V_Morocco_13_June_2026-144.jpg) |

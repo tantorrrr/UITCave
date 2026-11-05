@@ -68,6 +68,22 @@ export const SCOREBOARD = {
   ],
 };
 
+// Nhạc cổ động viên phát ngẫu nhiên (âm thanh qua trình phát YouTube nhúng, không tải file nhạc).
+// Đã kiểm cho nhúng ngày 2026-11-05; bài bị chặn nhúng sẽ tự bị bỏ qua.
+export const FAN_SONGS = [
+  { id: 'OV5_LQArLa0', club: 'liverpool', title: "You'll Never Walk Alone" },
+  { id: 'HVmbMWUhEaw', club: 'liverpool', title: "You'll Never Walk Alone · Anfield" },
+  { id: '9eWERM6QSys', club: 'liverpool', title: "You'll Never Walk Alone · The Kop" },
+  { id: 'x00uRZoTiC0', club: 'mancity', title: 'Blue Moon & Boys in Blue' },
+  { id: 'eRiDc2MetII', club: 'mancity', title: 'Blue Moon · Etihad' },
+  { id: 'a1nDYrCxeig', club: 'manutd', title: 'Glory Glory Man United' },
+  { id: 'JuRD8gSdmps', club: 'manutd', title: 'Glory Glory Manchester United' },
+  { id: 'V02OibHkdCE', club: 'chelsea', title: 'Blue Is the Colour' },
+  { id: '6tAaKqKUy20', club: 'chelsea', title: 'Blue Is the Colour · Munich 2012' },
+  { id: '5gU277dBf8I', club: 'arsenal', title: 'The Angel (North London Forever)' },
+  { id: 'QCPQpq83MKc', club: 'arsenal', title: 'North London Forever · Emirates' },
+];
+
 // Lịch thi đấu sắp tới trên bảng lớn trong hang. Lấy từ API công khai (không chính thức) của ESPN, mã đội theo ESPN.
 export const FIXTURE_TEAMS = [
   { espnId: 364, name: 'Liverpool' },
@@ -119,4 +135,57 @@ export const LEGENDS = [
   { name: 'Robert Pirès', club: 'arsenal', number: 7, years: '2000–2006' },
   { name: 'Sol Campbell', club: 'arsenal', number: 23, years: '2001–2010' },
   { name: 'Bukayo Saka', club: 'arsenal', number: 7, years: 'từ 2018' },
+  // Nhóm luân phiên: tranh trên vách tự đổi sang các cầu thủ này theo thời gian.
+  { name: 'Xabi Alonso', club: 'liverpool', number: 14, years: '2004–2009' },
+  { name: 'Sami Hyypiä', club: 'liverpool', number: 4, years: '1999–2009' },
+  { name: 'Pepe Reina', club: 'liverpool', number: 25, years: '2005–2014' },
+  { name: 'Dirk Kuyt', club: 'liverpool', number: 18, years: '2006–2012' },
+  { name: 'Jordan Henderson', club: 'liverpool', number: 14, years: '2011–2023' },
+  { name: 'Roberto Firmino', club: 'liverpool', number: 9, years: '2015–2023' },
+  { name: 'Sadio Mané', club: 'liverpool', number: 10, years: '2016–2022' },
+  { name: 'Alisson Becker', club: 'liverpool', number: 1, years: 'từ 2018' },
+  { name: 'Trent Alexander-Arnold', club: 'liverpool', number: 66, years: '2016–2025' },
+  { name: 'Andy Robertson', club: 'liverpool', number: 26, years: 'từ 2017' },
+  { name: 'Ruud van Nistelrooy', club: 'manutd', number: 10, years: '2001–2006' },
+  { name: 'Roy Keane', club: 'manutd', number: 16, years: '1993–2005' },
+  { name: 'Gary Neville', club: 'manutd', number: 2, years: '1992–2011' },
+  { name: 'Nemanja Vidić', club: 'manutd', number: 15, years: '2006–2014' },
+  { name: 'Patrice Evra', club: 'manutd', number: 3, years: '2006–2014' },
+  { name: 'Edwin van der Sar', club: 'manutd', number: 1, years: '2005–2011' },
+  { name: 'Park Ji-sung', club: 'manutd', number: 13, years: '2005–2012' },
+  { name: 'Bruno Fernandes', club: 'manutd', number: 8, years: 'từ 2020' },
+  { name: 'David de Gea', club: 'manutd', number: 1, years: '2011–2023' },
+  { name: 'Darren Fletcher', club: 'manutd', number: 24, years: '2003–2015' },
+  { name: 'Pablo Zabaleta', club: 'mancity', number: 5, years: '2008–2017' },
+  { name: 'Raheem Sterling', club: 'mancity', number: 7, years: '2015–2022' },
+  { name: 'Rodri', club: 'mancity', number: 16, years: 'từ 2019' },
+  { name: 'Phil Foden', club: 'mancity', number: 47, years: 'từ 2017' },
+  { name: 'Joe Hart', club: 'mancity', number: 1, years: '2006–2018' },
+  { name: 'Bernardo Silva', club: 'mancity', number: 20, years: 'từ 2017' },
+  { name: 'Carlos Tevez', club: 'mancity', number: 32, years: '2009–2013' },
+  { name: 'Rúben Dias', club: 'mancity', number: 3, years: 'từ 2020' },
+  { name: 'Ashley Cole', club: 'chelsea', number: 3, years: '2006–2014' },
+  { name: 'Michael Essien', club: 'chelsea', number: 5, years: '2005–2014' },
+  { name: 'Claude Makélélé', club: 'chelsea', number: 4, years: '2003–2008' },
+  { name: 'Arjen Robben', club: 'chelsea', number: 16, years: '2004–2007' },
+  { name: 'César Azpilicueta', club: 'chelsea', number: 28, years: '2012–2023' },
+  { name: 'Branislav Ivanović', club: 'chelsea', number: 2, years: '2008–2017' },
+  { name: 'Diego Costa', club: 'chelsea', number: 19, years: '2014–2017' },
+  { name: 'Thiago Silva', club: 'chelsea', number: 6, years: '2020–2024' },
+  { name: 'Reece James', club: 'chelsea', number: 24, years: 'từ 2018' },
+  { name: 'Cole Palmer', club: 'chelsea', number: 20, years: 'từ 2023' },
+  { name: 'Robin van Persie', club: 'arsenal', number: 10, years: '2004–2012' },
+  { name: 'Cesc Fàbregas', club: 'arsenal', number: 4, years: '2003–2011' },
+  { name: 'Jens Lehmann', club: 'arsenal', number: 1, years: '2003–2008' },
+  { name: 'Freddie Ljungberg', club: 'arsenal', number: 8, years: '1998–2007' },
+  { name: 'Santi Cazorla', club: 'arsenal', number: 19, years: '2012–2018' },
+  { name: 'Mesut Özil', club: 'arsenal', number: 11, years: '2013–2021' },
+  { name: 'Martin Ødegaard', club: 'arsenal', number: 8, years: 'từ 2021' },
+  { name: 'Declan Rice', club: 'arsenal', number: 41, years: 'từ 2023' },
+  { name: 'William Saliba', club: 'arsenal', number: 2, years: 'từ 2019' },
+  { name: 'Gabriel Martinelli', club: 'arsenal', number: 11, years: 'từ 2019' },
 ];
+
+// Số tranh treo cùng lúc trên vách; phần còn lại của LEGENDS thay phiên.
+export const POSTER_SLOTS = 30;
+export const POSTER_SWAP_MS = 6000; // cứ ~6 giây một tranh đổi sang cầu thủ khác cùng CLB
