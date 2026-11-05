@@ -36,8 +36,7 @@ export const POLL = {
 
 // Bảng tin lớn trong hang.
 export const SCOREBOARD = {
-  note: 'Vào đây giao lưu võ thuật 👊',
-  // Video YouTube chiếu dưới bảng tỉ số, phát ngẫu nhiên lần lượt. Để mảng rỗng = không chiếu.
+  // Video YouTube chiếu dưới bảng lịch thi đấu, phát ngẫu nhiên lần lượt. Để mảng rỗng = không chiếu.
   // Chỉ dùng video của kênh chính thức có cho nhúng (video chặn nhúng sẽ tự bị bỏ qua).
   // Đã kiểm cho nhúng ngày 2026-11-05. Phần lớn highlight trận của Man Utd bị chặn nhúng.
   youtubeIds: [
@@ -79,7 +78,7 @@ export const FIXTURE_TEAMS = [
 ];
 
 // Chân dung treo tường. Có ảnh thì đặt vào public/images/legends/ và điền `img`.
-// Tranh vẽ cách điệu (màu CLB + số áo), không dùng ảnh chụp để tránh vướng bản quyền.
+// Màu CLB cho tranh chân dung. Ảnh thật (giấy phép tự do từ Wikimedia) nằm ở src/legendPhotos.js.
 export const CLUBS = {
   liverpool: { name: 'Liverpool', colors: ['#c8102e', '#5e0715'], accent: '#f6eb61' },
   manutd: { name: 'Man Utd', colors: ['#da291c', '#4a0a05'], accent: '#fbe122' },

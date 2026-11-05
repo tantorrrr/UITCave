@@ -31,7 +31,6 @@ const MIME = {
 /** @type {Map<number, any>} */
 const players = new Map();
 const chatLog = [];
-const votes = new Map(); // playerId -> option index
 let nextId = 1;
 
 function json(res, code, body) {
@@ -125,38 +124,52 @@ function pushChat(entry) {
   broadcast({ t: 'chat', ...entry });
 }
 
-// --- Bình chọn: theo trận sắp đá gần nhất; hết lịch thì dùng câu hỏi mặc định trong config ---
-let poll = { matchId: 'default', question: POLL.question, options: POLL.options, kickoff: null, league: '' };
+// --- Bình chọn: mỗi trận sắp đá có một cuộc bình chọn; trận đã bắt đầu thì đóng.
+// Hết lịch thì dùng câu hỏi mặc định trong config. ---
+/** @type {Map<string, { matchId: string, question: string, options: string[], kickoff: string|null, league: string, home?: string, away?: string, votes: Map<number, number> }>} */
+let polls = new Map([['default', defaultPoll()]]);
 
-function pollCounts() {
+function defaultPoll() {
+  return { matchId: 'default', question: POLL.question, options: POLL.options, kickoff: null, league: '', votes: new Map() };
+}
+
+function pollCounts(poll) {
   const counts = poll.options.map(() => 0);
-  for (const v of votes.values()) counts[v]++;
+  for (const v of poll.votes.values()) counts[v]++;
   return counts;
 }
 
-function pollPayload(playerId) {
-  return { ...poll, counts: pollCounts(), mine: votes.get(playerId) ?? null };
+function pollPayload(poll, playerId) {
+  const { votes: _votes, ...rest } = poll;
+  return { ...rest, counts: pollCounts(poll), mine: poll.votes.get(playerId) ?? null };
 }
 
-// Trận gần nhất đổi (trận cũ đã đá) thì mở bình chọn mới và báo mọi người.
-async function refreshPoll() {
-  // Lịch cache tới 30 phút nên lọc lại theo giờ hiện tại, bỏ trận đã bắt đầu.
-  const next = (await loadFixtures()).find((m) => Date.parse(m.date) > Date.now());
-  const matchId = next?.id ?? 'default';
-  if (matchId === poll.matchId) return;
-  poll = next
-    ? {
-        matchId,
-        question: `${next.home} vs ${next.away}: ai thắng?`,
-        options: [`${next.home} thắng`, 'Hoà', `${next.away} thắng`],
-        kickoff: next.date,
-        league: next.league,
-        home: next.home,
-        away: next.away,
-      }
-    : { matchId, question: POLL.question, options: POLL.options, kickoff: null, league: '' };
-  votes.clear();
-  for (const p of players.values()) send(p.ws, { t: 'poll', ...pollPayload(p.id) });
+const pollList = (playerId) => [...polls.values()].map((p) => pollPayload(p, playerId));
+
+// Đồng bộ danh sách bình chọn với lịch: thêm trận mới, đóng trận đã bắt đầu, giữ phiếu của trận còn lại.
+async function refreshPolls() {
+  // Lịch cache tới 30 phút nên lọc lại theo giờ hiện tại.
+  const upcoming = (await loadFixtures()).filter((m) => Date.parse(m.date) > Date.now());
+  const next = new Map();
+  for (const m of upcoming) {
+    next.set(
+      m.id,
+      polls.get(m.id) ?? {
+        matchId: m.id,
+        question: `${m.home} vs ${m.away}: ai thắng?`,
+        options: [`${m.home} thắng`, 'Hoà', `${m.away} thắng`],
+        kickoff: m.date,
+        league: m.league,
+        home: m.home,
+        away: m.away,
+        votes: new Map(),
+      },
+    );
+  }
+  if (!next.size) next.set('default', polls.get('default') ?? defaultPoll());
+  const changed = next.size !== polls.size || [...next.keys()].some((id) => !polls.has(id));
+  polls = next;
+  if (changed) for (const p of players.values()) send(p.ws, { t: 'polls', polls: pollList(p.id) });
 }
 
 function cleanName(raw) {
@@ -218,9 +231,9 @@ wss.on('connection', (ws) => {
         id: me.id,
         players: [...players.values()].map(publicInfo),
         chat: chatLog,
-        poll: pollPayload(me.id),
+        polls: pollList(me.id),
       });
-      refreshPoll().catch(() => {});
+      refreshPolls().catch(() => {});
       broadcast({ t: 'join', p: publicInfo(me) }, me.id);
       pushChat({ sys: true, text: `${me.name} vừa vào hang` });
       return;
@@ -269,13 +282,14 @@ wss.on('connection', (ws) => {
         break;
       case 'vote': {
         const v = msg.v | 0;
-        // Bỏ phiếu gửi cho trận cũ (client chưa kịp nhận bình chọn mới) thì bỏ qua.
-        if (msg.matchId !== poll.matchId) return;
-        if (v < 0 || v >= poll.options.length || votes.get(me.id) === v) return;
-        votes.set(me.id, v);
+        // Trận đã đóng bình chọn (đã bắt đầu đá) hoặc không tồn tại thì bỏ qua.
+        const poll = polls.get(String(msg.matchId));
+        if (!poll || v < 0 || v >= poll.options.length || poll.votes.get(me.id) === v) return;
+        poll.votes.set(me.id, v);
         send(ws, { t: 'myvote', v, matchId: poll.matchId });
-        broadcast({ t: 'pollcounts', matchId: poll.matchId, counts: pollCounts() });
-        pushChat({ sys: true, text: `${me.name} 🗳️ ${poll.options[v]}` });
+        broadcast({ t: 'pollcounts', matchId: poll.matchId, counts: pollCounts(poll) });
+        const label = poll.home ? ` (${poll.home} vs ${poll.away})` : '';
+        pushChat({ sys: true, text: `${me.name} 🗳️ ${poll.options[v]}${label}` });
         break;
       }
     }
@@ -304,8 +318,8 @@ setInterval(() => {
 }, TICK_MS);
 
 // Kiểm trận gần nhất mỗi phút (dữ liệu lịch đã cache 30 phút nên không gọi ESPN dồn dập).
-refreshPoll().catch(() => {});
-setInterval(() => refreshPoll().catch(() => {}), 60 * 1000);
+refreshPolls().catch(() => {});
+setInterval(() => refreshPolls().catch(() => {}), 60 * 1000);
 
 server.listen(PORT, () => {
   console.log(`Hang Uit server: http://localhost:${PORT}  (ws: /ws)`);

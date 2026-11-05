@@ -3,6 +3,7 @@ import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer
 import { CSS3DObject, CSS3DRenderer } from 'three/addons/renderers/CSS3DRenderer.js';
 import { BRAND, CLUBS, FIXTURE_TEAMS, LEGENDS, POLL, SCOREBOARD } from './config.js';
 import { createAvatar } from './avatar.js';
+import { LEGEND_PHOTOS } from './legendPhotos.js';
 import { createAudio } from './audio.js';
 import { connect } from './net.js';
 import { createCampfire, createTorch, rng, rockGeometry, rockMaterial, textCanvas } from './scenery.js';
@@ -163,66 +164,98 @@ function canvasFontsReady() {
 
 function addPoster(scene, legend, angle, r) {
   const club = CLUBS[legend.club] ?? { name: '', colors: [BRAND.jersey.body, '#0d1a44'], accent: '#fff' };
+  const credit = LEGEND_PHOTOS[legend.name];
+  let photo = null;
+  const PHOTO_H = 372;
+
   const draw = (g, w, h) => {
     const grad = g.createLinearGradient(0, 0, 0, h);
     grad.addColorStop(0, club.colors[0]);
     grad.addColorStop(1, club.colors[1]);
     g.fillStyle = grad;
     g.fillRect(0, 0, w, h);
-
-    // Số áo lớn chìm phía sau.
     g.textAlign = 'center';
     g.textBaseline = 'middle';
-    g.globalAlpha = 0.22;
-    g.fillStyle = '#fff';
-    g.font = '800 300px Bitter, Georgia, serif';
-    g.fillText(String(legend.number ?? ''), w / 2, 200);
-    g.globalAlpha = 1;
 
-    // Bóng người mặc áo có số.
-    g.fillStyle = 'rgba(0, 0, 0, 0.35)';
-    g.beginPath();
-    g.arc(w / 2, 150, 58, 0, Math.PI * 2);
-    g.fill();
-    g.beginPath();
-    g.moveTo(w / 2 - 120, 360);
-    g.quadraticCurveTo(w / 2 - 110, 225, w / 2, 220);
-    g.quadraticCurveTo(w / 2 + 110, 225, w / 2 + 120, 360);
-    g.fill();
-    g.fillStyle = club.accent;
-    g.font = '800 64px Bitter, Georgia, serif';
-    g.fillText(String(legend.number ?? ''), w / 2, 300);
+    if (photo) {
+      // Ảnh thật, cắt kiểu "cover" và ưu tiên phần trên (mặt người).
+      const s = Math.max(w / photo.width, PHOTO_H / photo.height);
+      const dw = photo.width * s;
+      const dh = photo.height * s;
+      g.drawImage(photo, (w - dw) / 2, Math.min(0, (PHOTO_H - dh) * 0.25), dw, dh);
+      const fade = g.createLinearGradient(0, PHOTO_H - 90, 0, PHOTO_H);
+      fade.addColorStop(0, 'rgba(0,0,0,0)');
+      fade.addColorStop(1, club.colors[1]);
+      g.fillStyle = fade;
+      g.fillRect(0, PHOTO_H - 90, w, 90);
+      // Huy hiệu số áo ở góc.
+      g.fillStyle = club.colors[0];
+      g.beginPath();
+      g.arc(w - 44, 44, 32, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = club.accent;
+      g.font = '800 34px Bitter, Georgia, serif';
+      g.fillText(String(legend.number ?? ''), w - 44, 46);
+    } else {
+      // Chưa có ảnh: bóng người + số áo.
+      g.globalAlpha = 0.22;
+      g.fillStyle = '#fff';
+      g.font = '800 300px Bitter, Georgia, serif';
+      g.fillText(String(legend.number ?? ''), w / 2, 200);
+      g.globalAlpha = 1;
+      g.fillStyle = 'rgba(0, 0, 0, 0.35)';
+      g.beginPath();
+      g.arc(w / 2, 150, 58, 0, Math.PI * 2);
+      g.fill();
+      g.beginPath();
+      g.moveTo(w / 2 - 120, 360);
+      g.quadraticCurveTo(w / 2 - 110, 225, w / 2, 220);
+      g.quadraticCurveTo(w / 2 + 110, 225, w / 2 + 120, 360);
+      g.fill();
+      g.fillStyle = club.accent;
+      g.font = '800 64px Bitter, Georgia, serif';
+      g.fillText(String(legend.number ?? ''), w / 2, 300);
+    }
 
     // Dải tên phía dưới.
-    g.fillStyle = 'rgba(0, 0, 0, 0.55)';
-    g.fillRect(0, 372, w, 140);
+    g.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    g.fillRect(0, PHOTO_H, w, h - PHOTO_H);
     g.fillStyle = club.accent;
-    g.fillRect(0, 372, w, 5);
+    g.fillRect(0, PHOTO_H, w, 5);
     g.fillStyle = '#fff';
     let size = 40;
     g.font = `800 ${size}px Bitter, Georgia, serif`;
     while (g.measureText(legend.name).width > w - 30 && size > 24) g.font = `800 ${(size -= 2)}px Bitter, Georgia, serif`;
-    g.fillText(legend.name, w / 2, 420);
-    g.font = '600 26px "Be Vietnam Pro", sans-serif';
+    g.fillText(legend.name, w / 2, 412);
+    g.font = '600 24px "Be Vietnam Pro", sans-serif';
     g.fillStyle = club.accent;
-    g.fillText(`${club.name} · ${legend.years ?? ''}`, w / 2, 470);
+    g.fillText(`${club.name} · ${legend.years ?? ''}`, w / 2, 452);
+    if (credit) {
+      // Ghi công theo yêu cầu của giấy phép CC.
+      let line = `Ảnh: ${credit.artist} · ${credit.license}`;
+      g.font = '500 15px "Be Vietnam Pro", sans-serif';
+      g.fillStyle = 'rgba(255,255,255,0.7)';
+      while (g.measureText(line).width > w - 20 && line.length > 10) line = `${line.slice(0, -4)}…`;
+      g.fillText(line, w / 2, 490);
+    }
   };
   const tex = textCanvas(384, 512, draw);
-  // Vẽ lại khi font (có dấu tiếng Việt, ü, č…) đã tải xong.
-  canvasFontsReady().then(() => {
+  const redraw = () => {
     draw(tex.image.getContext('2d'), tex.image.width, tex.image.height);
     tex.needsUpdate = true;
-  });
+  };
+  // Vẽ lại khi font (có dấu tiếng Việt, ü, č…) và ảnh đã tải xong.
+  canvasFontsReady().then(redraw);
+  if (credit) {
+    const img = new Image();
+    img.onload = () => {
+      photo = img;
+      canvasFontsReady().then(redraw);
+    };
+    img.src = credit.img;
+  }
   // Tự sáng nhẹ để vẫn đọc được tên khi đứng xa đuốc.
   const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0.45 });
-  if (legend.img) {
-    new THREE.TextureLoader().load(legend.img, (img) => {
-      img.colorSpace = THREE.SRGBColorSpace;
-      mat.map = img;
-      mat.emissiveMap = img;
-      mat.needsUpdate = true;
-    });
-  }
   const poster = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 2.8), mat);
   const frame = new THREE.Mesh(new THREE.BoxGeometry(2.35, 3.05, 0.08), new THREE.MeshStandardMaterial({ color: '#3a2618' }));
   frame.position.z = -0.05;
@@ -237,13 +270,12 @@ function buildScreen(scene, css3dScene, { onVideoError } = {}) {
   group.position.set(0, 0, SCREEN_Z);
   scene.add(group);
 
-  // Bố cục từ dưới lên: video 16:9, dải chữ, bảng lịch thi đấu.
+  // Bố cục từ dưới lên: video 16:9, bảng lịch thi đấu.
   const VIDEO_W = 17.6;
   const VIDEO_H = (VIDEO_W * 9) / 16;
   const videoY = 1.6 + VIDEO_H / 2;
-  const noteY = videoY + VIDEO_H / 2 + 0.45;
   const BOARD_H = 5.6; // lịch thi đấu + dải tỉ lệ bình chọn bên dưới
-  const boardY = noteY + 0.5 + BOARD_H / 2;
+  const boardY = videoY + VIDEO_H / 2 + 0.4 + BOARD_H / 2;
 
   const frameH = boardY + BOARD_H / 2 + 0.3 - 1.1;
   const frame = new THREE.Mesh(
@@ -267,22 +299,6 @@ function buildScreen(scene, css3dScene, { onVideoError } = {}) {
   );
   board.position.set(0, boardY, 0);
   group.add(board);
-
-  const noteTex = textCanvas(768, 96, (g, w, h) => {
-    g.fillStyle = BRAND.jersey.body;
-    g.fillRect(0, 0, w, h);
-    g.strokeStyle = BRAND.jersey.trim;
-    g.lineWidth = 6;
-    g.strokeRect(3, 3, w - 6, h - 6);
-    g.fillStyle = '#fff';
-    g.font = '700 46px "Be Vietnam Pro", sans-serif';
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    g.fillText(SCOREBOARD.note, w / 2, h / 2 + 2);
-  });
-  const note = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 0.8), new THREE.MeshBasicMaterial({ map: noteTex, fog: false }));
-  note.position.set(0, noteY, 0.05);
-  group.add(note);
 
   let player = null;
 
@@ -651,16 +667,26 @@ function buildHud(app, { onLeave }) {
     hideChat.textContent = chat.classList.contains('collapsed') ? 'Hiện' : 'Ẩn';
   });
 
-  // Bình chọn: câu hỏi và nút do server gửi (trận sắp đá gần nhất), dựng lại khi đổi trận.
+  // Bình chọn: mỗi trận sắp đá một cuộc; mũi tên chuyển trận, nút ℹ xem lại toàn bộ.
   const pollQ = el('div', { className: 'poll-q' });
   const pollMeta = el('div', { className: 'poll-meta' });
   const pollOpts = el('div', { className: 'poll-opts' });
-  const poll = el('div', { className: 'poll' }, pollQ, pollMeta, pollOpts);
+  const prevBtn = el('button', { className: 'poll-nav', type: 'button', 'aria-label': 'Trận trước' }, '◀');
+  const nextBtn = el('button', { className: 'poll-nav', type: 'button', 'aria-label': 'Trận sau' }, '▶');
+  const infoBtn = el('button', { className: 'poll-nav poll-info', type: 'button', 'aria-label': 'Xem lại bình chọn' }, 'ℹ');
+  const poll = el('div', { className: 'poll' }, el('div', { className: 'poll-head' }, prevBtn, pollQ, nextBtn, infoBtn), pollMeta, pollOpts);
   let pollBtns = [];
   let onVote = () => {};
-  function setPoll(p) {
+  const nav = { prev: () => {}, next: () => {}, info: () => {} };
+  prevBtn.addEventListener('click', () => nav.prev());
+  nextBtn.addEventListener('click', () => nav.next());
+  infoBtn.addEventListener('click', () => nav.info());
+  function setPoll(p, index = 0, total = 1) {
     pollQ.textContent = `🗳️ ${p.question}`;
-    pollMeta.textContent = p.kickoff ? `${formatKickoff(p.kickoff)} · ${shortLeague(p.league)}` : '';
+    const when = p.kickoff ? `${formatKickoff(p.kickoff)} · ${shortLeague(p.league)}` : '';
+    pollMeta.textContent = total > 1 ? `${when} · trận ${index + 1}/${total}` : when;
+    prevBtn.disabled = index <= 0;
+    nextBtn.disabled = index >= total - 1;
     pollBtns = p.options.map((text, i) => {
       const countEl = el('span', { className: 'count' }, '0');
       const b = el('button', { type: 'button' }, kbd(String(i + 1)), text, countEl);
@@ -773,7 +799,9 @@ function buildHud(app, { onLeave }) {
       [['F', 'Click'], 'Đấm người trong vòng đỏ trước mặt'],
       [['G'], 'Ăn mừng'],
       [['Enter'], 'Chat'],
-      [['1', '2', '3'], 'Bình chọn'],
+      [['1', '2', '3'], 'Bình chọn trận đang xem'],
+      [['Q', 'E'], 'Chuyển sang trận trước / sau'],
+      [['I'], 'Xem lại bình chọn các trận'],
       [['M'], 'Tắt / bật tiếng'],
       [['V'], 'Tắt / bật tiếng video bảng tin'],
       [['H'], 'Mở / đóng bảng này'],
@@ -793,6 +821,7 @@ function buildHud(app, { onLeave }) {
     set onVote(fn) {
       onVote = fn;
     },
+    pollNav: nav,
     setCount: (n) => (count.textContent = `${n} anh em trong hang`),
     showToast, addChat, card, toggleHelp,
     setMyHp(hp, ghost) {
@@ -950,31 +979,72 @@ export function mountCave(app, { profile, onLeave }) {
   }
 
   // --- Bình chọn ------------------------------------------------------------
-  let myVote = null;
-  let pollMatchId = null;
-  let pollSize = POLL.options.length;
-  function renderPoll(counts) {
+  // polls: danh sách theo giờ đá (server gửi); sel: trận đang xem trên HUD và bảng lớn.
+  let polls = [];
+  let sel = 0;
+  const selected = () => polls[sel];
+  function renderCounts() {
+    const p = selected();
+    if (!p) return;
     hud.pollBtns.forEach((b, i) => {
-      b.countEl.textContent = counts[i] ?? 0;
-      b.classList.toggle('mine', myVote === i);
+      b.countEl.textContent = p.counts[i] ?? 0;
+      b.classList.toggle('mine', p.mine === i);
     });
-  }
-  let lastCounts = POLL.options.map(() => 0);
-  let currentPoll = null;
-  function applyPoll(p) {
-    currentPoll = p;
-    pollMatchId = p.matchId;
-    pollSize = p.options.length;
-    myVote = p.mine;
-    lastCounts = p.counts;
-    hud.setPoll(p);
-    renderPoll(lastCounts);
     screen.setPoll(p);
+    if (infoCard?.isConnected) renderInfo();
+  }
+  function showPoll(index) {
+    if (!polls.length) return;
+    sel = Math.max(0, Math.min(polls.length - 1, index));
+    hud.setPoll(selected(), sel, polls.length);
+    renderCounts();
+  }
+  function applyPolls(list) {
+    const keep = selected()?.matchId;
+    polls = list;
+    const idx = polls.findIndex((p) => p.matchId === keep);
+    showPoll(idx >= 0 ? idx : 0);
   }
   hud.onVote = vote;
+  hud.pollNav.prev = () => showPoll(sel - 1);
+  hud.pollNav.next = () => showPoll(sel + 1);
+  hud.pollNav.info = toggleInfo;
   function vote(i) {
-    if (i >= pollSize) return;
-    net.send({ t: 'vote', v: i, matchId: pollMatchId });
+    const p = selected();
+    if (!p || i >= p.options.length) return;
+    net.send({ t: 'vote', v: i, matchId: p.matchId });
+  }
+
+  // Bảng xem lại: mọi trận đang mở bình chọn, tỉ lệ và lựa chọn của mình; bấm một dòng để chuyển tới trận đó.
+  let infoCard = null;
+  const infoList = el('div', { className: 'vote-list' });
+  function renderInfo() {
+    infoList.replaceChildren(
+      ...polls.map((p, i) => {
+        const total = p.counts.reduce((a, b) => a + b, 0);
+        const pct = (c) => (total ? `${Math.round((c / total) * 100)}%` : '–');
+        const short = (o) => o.replace(/ thắng$/, '');
+        const row = el(
+          'button',
+          { type: 'button', className: `vote-row${i === sel ? ' active' : ''}` },
+          el('div', { className: 'vote-title' }, p.home ? `${p.home} vs ${p.away}` : p.question),
+          el('div', { className: 'vote-when' }, p.kickoff ? `${formatKickoff(p.kickoff)} · ${shortLeague(p.league)}` : ''),
+          el('div', { className: 'vote-pcts' }, p.options.map((o, k) => `${short(o)} ${pct(p.counts[k] ?? 0)}`).join('  ·  ') + `  (${total} phiếu)`),
+          el('div', { className: 'vote-mine' }, p.mine != null ? `Bạn chọn: ${p.options[p.mine]}` : 'Bạn chưa chọn'),
+        );
+        row.addEventListener('click', () => showPoll(i));
+        return row;
+      }),
+    );
+  }
+  function toggleInfo() {
+    if (infoCard?.isConnected) {
+      infoCard.remove();
+      return;
+    }
+    renderInfo();
+    infoCard = hud.card('🗳️ Bình chọn các trận sắp tới', infoList, { closeLabel: 'Đóng' });
+    infoCard.classList.add('vote-card');
   }
 
   // --- Mạng -----------------------------------------------------------------
@@ -996,7 +1066,7 @@ export function mountCave(app, { profile, onLeave }) {
       msg.players.forEach(addOther);
       hud.log.replaceChildren();
       msg.chat.forEach(hud.addChat);
-      applyPoll(msg.poll);
+      applyPolls(msg.polls ?? []);
       updateCount();
       loading.remove();
       maybeTutorial();
@@ -1055,19 +1125,20 @@ export function mountCave(app, { profile, onLeave }) {
       confetti.burst(av.root.position);
       if (msg.id === myId) audio.cheer();
     },
-    poll(msg) {
-      applyPoll(msg);
+    polls(msg) {
+      applyPolls(msg.polls);
     },
     pollcounts(msg) {
-      if (msg.matchId !== pollMatchId) return;
-      lastCounts = msg.counts;
-      renderPoll(lastCounts);
-      screen.setPoll({ ...currentPoll, counts: msg.counts });
+      const p = polls.find((x) => x.matchId === msg.matchId);
+      if (!p) return;
+      p.counts = msg.counts;
+      renderCounts();
     },
     myvote(msg) {
-      if (msg.matchId !== pollMatchId) return;
-      myVote = msg.v;
-      renderPoll(lastCounts);
+      const p = polls.find((x) => x.matchId === msg.matchId);
+      if (!p) return;
+      p.mine = msg.v;
+      renderCounts();
     },
   });
 
@@ -1167,6 +1238,9 @@ export function mountCave(app, { profile, onLeave }) {
     else if (k === 'm') toggleMute();
     else if (k === 'v') toggleVideo();
     else if (k >= '1' && k <= '9') vote(Number(k) - 1);
+    else if (k === 'q') showPoll(sel - 1);
+    else if (k === 'e') showPoll(sel + 1);
+    else if (k === 'i') toggleInfo();
   }
   const onKeyUp = (e) => keys.delete(e.code);
   const onBlur = () => keys.clear();
