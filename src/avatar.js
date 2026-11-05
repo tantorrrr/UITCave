@@ -3,7 +3,7 @@ import { BRAND, CLUBS } from './config.js';
 
 const SKIN = '#e8b896';
 
-// Áo mặc định khi không chọn CLB: màu thương hiệu Hang Uit.
+// Áo mặc định khi không chọn CLB: màu thương hiệu Hang Chung.
 const DEFAULT_KIT = {
   body: BRAND.jersey.body,
   sleeve: BRAND.jersey.body,
@@ -12,7 +12,7 @@ const DEFAULT_KIT = {
   number: BRAND.jersey.number,
 };
 
-/** Bộ màu áo theo mã CLB (liverpool, barcelona…); mã lạ hoặc rỗng → áo Hang Uit. */
+/** Bộ màu áo theo mã CLB (liverpool, barcelona…); mã lạ hoặc rỗng → áo Hang Chung. */
 export function kitOf(club) {
   return CLUBS[club]?.kit ?? DEFAULT_KIT;
 }

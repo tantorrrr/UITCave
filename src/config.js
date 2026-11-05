@@ -1,8 +1,9 @@
 // Mọi thứ mang tính "thương hiệu" nằm ở đây để đổi nhanh.
 export const BRAND = {
-  name: 'Hang Uit',
+  name: 'Hang Chung',
   signTop: 'DI TÍCH LỊCH SỬ',
-  signMain: 'HANG UIT',
+  signMain: 'HANG CHUNG',
+  badge: 'HC', // chữ trong huy hiệu tròn trên biển di tích
   tagline: 'Nơi anh em trú sau mỗi lần thua, và cùng ra hang khi thắng.',
   disclaimer: 'Trang do người hâm mộ tự làm, phi thương mại.',
   roomName: 'Hang chung',

@@ -97,7 +97,7 @@ function buildScene(scene) {
     g.font = '800 70px Bitter, Georgia, serif';
     g.textAlign = 'center';
     g.textBaseline = 'middle';
-    g.fillText(BRAND.signMain.split(' ').pop().slice(0, 3), w / 2, 155);
+    g.fillText(BRAND.badge, w / 2, 155);
     g.fillStyle = '#5b5148';
     g.font = '700 34px Bitter, Georgia, serif';
     g.fillText(BRAND.signTop, w / 2, 292);
@@ -154,7 +154,7 @@ function nameDialog(root, onSubmit) {
   name.addEventListener('input', refresh);
   num.addEventListener('input', refresh);
 
-  // Chọn CLB cổ vũ: quyết định màu áo nhân vật trong hang. Bỏ trống = áo Hang Uit.
+  // Chọn CLB cổ vũ: quyết định màu áo nhân vật trong hang. Bỏ trống = áo Hang Chung.
   let club = CLUBS[saved.club] ? saved.club : '';
   const clubBtns = [['', 'Không chọn'], ...CLUB_ORDER.map((k) => [k, CLUBS[k].name])].map(([key, label]) => {
     const dot = el('canvas', { width: 40, height: 40, className: 'club-kit' });

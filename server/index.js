@@ -373,5 +373,5 @@ refreshPolls().catch(() => {});
 setInterval(() => refreshPolls().catch(() => {}), 60 * 1000);
 
 server.listen(PORT, () => {
-  console.log(`Hang Uit server: http://localhost:${PORT}  (ws: /ws)`);
+  console.log(`Hang Chung server: http://localhost:${PORT}  (ws: /ws)`);
 });
