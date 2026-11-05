@@ -1,0 +1,230 @@
+import * as THREE from 'three';
+import { BRAND } from './config.js';
+
+const SKIN = '#e8b896';
+
+function jerseyTexture(number) {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = BRAND.jersey.body;
+  g.fillRect(0, 0, c.width, c.height);
+  // Viền cổ/vai
+  g.fillStyle = BRAND.jersey.trim;
+  g.fillRect(0, 0, c.width, 14);
+  // UV u=0.5 của CylinderGeometry nằm phía -z = lưng nhân vật.
+  if (number) {
+    g.fillStyle = BRAND.jersey.number;
+    g.font = '800 150px Bitter, Georgia, serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(String(number), c.width / 2, 140);
+  }
+  // Huy hiệu nhỏ ở ngực (u≈0.08)
+  g.fillStyle = BRAND.jersey.trim;
+  g.beginPath();
+  g.arc(c.width * 0.08, 70, 14, 0, Math.PI * 2);
+  g.fill();
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return tex;
+}
+
+/** Nhân vật dạng "con lăn": thân áo đấu, đầu tròn, hai tay. Mặt quay về +z. */
+export function createAvatar(number) {
+  const root = new THREE.Group();
+
+  const bodyMat = new THREE.MeshStandardMaterial({ map: jerseyTexture(number), roughness: 0.75 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 1.1, 24, 1), bodyMat);
+  body.position.y = 0.75;
+  body.castShadow = true;
+  root.add(body);
+
+  const shorts = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.5, 0.48, 0.28, 24),
+    new THREE.MeshStandardMaterial({ color: '#f4f1ea', roughness: 0.8 }),
+  );
+  shorts.position.y = 0.14;
+  shorts.castShadow = true;
+  root.add(shorts);
+
+  const skinMat = new THREE.MeshStandardMaterial({ color: SKIN, roughness: 0.6 });
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 20, 16), skinMat);
+  head.position.y = 1.55;
+  head.castShadow = true;
+  root.add(head);
+
+  const hair = new THREE.Mesh(
+    new THREE.SphereGeometry(0.31, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2.3),
+    new THREE.MeshStandardMaterial({ color: '#2b211b', roughness: 0.9 }),
+  );
+  hair.position.y = 1.57;
+  root.add(hair);
+
+  const eyeMat = new THREE.MeshBasicMaterial({ color: '#1a1a1a' });
+  for (const sx of [-0.1, 0.1]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), eyeMat);
+    eye.position.set(sx, 1.58, 0.27);
+    root.add(eye);
+  }
+
+  const armGeo = new THREE.CapsuleGeometry(0.11, 0.45, 4, 10);
+  const sleeveMat = new THREE.MeshStandardMaterial({ color: BRAND.jersey.body, roughness: 0.75 });
+  const arms = [];
+  for (const side of [-1, 1]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(side * 0.55, 1.15, 0);
+    const arm = new THREE.Mesh(armGeo, sleeveMat);
+    arm.position.y = -0.3;
+    arm.castShadow = true;
+    const fist = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), skinMat);
+    fist.position.y = -0.62;
+    pivot.add(arm, fist);
+    root.add(pivot);
+    arms.push(pivot);
+  }
+
+  // Vòng dưới chân: chuyển đỏ khi trong tầm đấm.
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.62, 0.72, 40),
+    new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.0, side: THREE.DoubleSide, depthWrite: false }),
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.02;
+  root.add(ring);
+
+  const anim = { walk: 0, punch: 0, celebrate: 0, hit: 0 };
+
+  function update(dt, moving) {
+    anim.walk += dt * (moving ? 10 : 0);
+    const swing = moving ? Math.sin(anim.walk) * 0.6 : 0;
+    arms[0].rotation.x = swing;
+    arms[1].rotation.x = -swing;
+    body.position.y = 0.75 + (moving ? Math.abs(Math.sin(anim.walk)) * 0.05 : 0);
+
+    if (anim.punch > 0) {
+      anim.punch = Math.max(0, anim.punch - dt);
+      const t = 1 - anim.punch / 0.35;
+      arms[1].rotation.x = -Math.PI / 2 * Math.sin(Math.min(1, t) * Math.PI);
+    }
+    if (anim.celebrate > 0) {
+      anim.celebrate = Math.max(0, anim.celebrate - dt);
+      const t = 1.6 - anim.celebrate;
+      arms[0].rotation.z = -2.6;
+      arms[1].rotation.z = 2.6;
+      root.position.y = Math.abs(Math.sin(t * 7)) * 0.5;
+    } else {
+      arms[0].rotation.z = 0;
+      arms[1].rotation.z = 0;
+      root.position.y = 0;
+    }
+    if (anim.hit > 0) {
+      anim.hit = Math.max(0, anim.hit - dt);
+      root.rotation.z = Math.sin(anim.hit * 40) * 0.15 * (anim.hit / 0.5);
+    } else {
+      root.rotation.z = 0;
+    }
+  }
+
+  return {
+    root,
+    ring,
+    update,
+    punch: () => (anim.punch = 0.35),
+    celebrate: () => (anim.celebrate = 1.6),
+    hit: () => (anim.hit = 0.5),
+    get celebrating() {
+      return anim.celebrate > 0;
+    },
+    dispose() {
+      root.traverse((o) => {
+        if (o.isMesh) {
+          o.geometry.dispose();
+          o.material.map?.dispose();
+          o.material.dispose();
+        }
+      });
+    },
+  };
+}
+
+/** Áo đấu treo trên giá ở cửa hang. */
+export function createHangingJersey() {
+  const shape = new THREE.Shape();
+  shape.moveTo(-0.45, 0);
+  shape.lineTo(0.45, 0);
+  shape.lineTo(0.45, 0.8);
+  shape.lineTo(0.75, 0.62);
+  shape.lineTo(0.92, 0.9);
+  shape.lineTo(0.5, 1.15);
+  shape.lineTo(0.2, 1.15);
+  shape.quadraticCurveTo(0, 1.0, -0.2, 1.15);
+  shape.lineTo(-0.5, 1.15);
+  shape.lineTo(-0.92, 0.9);
+  shape.lineTo(-0.75, 0.62);
+  shape.lineTo(-0.45, 0.8);
+  shape.closePath();
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.12, bevelEnabled: true, bevelSize: 0.03, bevelThickness: 0.03, bevelSegments: 2 });
+  geo.translate(0, 0, -0.06);
+  const mat = new THREE.MeshStandardMaterial({ color: BRAND.jersey.body, roughness: 0.7 });
+  const shirt = new THREE.Mesh(geo, mat);
+  shirt.castShadow = true;
+
+  const collar = new THREE.Mesh(
+    new THREE.TorusGeometry(0.2, 0.035, 8, 20, Math.PI),
+    new THREE.MeshStandardMaterial({ color: BRAND.jersey.trim }),
+  );
+  collar.rotation.z = Math.PI;
+  collar.position.set(0, 1.15, 0.1);
+  shirt.add(collar);
+
+  const badge = new THREE.Mesh(
+    new THREE.CircleGeometry(0.08, 20),
+    new THREE.MeshStandardMaterial({ color: BRAND.jersey.trim }),
+  );
+  badge.position.set(0.22, 0.85, 0.1);
+  shirt.add(badge);
+  return shirt;
+}
+
+/** Vẽ áo 2D nhỏ cho hộp nhập tên. */
+export function drawJerseyIcon(canvas, number) {
+  const g = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  g.clearRect(0, 0, w, h);
+  g.save();
+  g.scale(w / 40, h / 40);
+  g.fillStyle = BRAND.jersey.body;
+  g.beginPath();
+  g.moveTo(13, 5);
+  g.lineTo(8, 7);
+  g.lineTo(2, 13);
+  g.lineTo(6, 18);
+  g.lineTo(10, 15);
+  g.lineTo(10, 36);
+  g.lineTo(30, 36);
+  g.lineTo(30, 15);
+  g.lineTo(34, 18);
+  g.lineTo(38, 13);
+  g.lineTo(32, 7);
+  g.lineTo(27, 5);
+  g.quadraticCurveTo(20, 10, 13, 5);
+  g.fill();
+  g.strokeStyle = BRAND.jersey.trim;
+  g.lineWidth = 1.5;
+  g.beginPath();
+  g.moveTo(13, 5);
+  g.quadraticCurveTo(20, 10, 27, 5);
+  g.stroke();
+  if (number) {
+    g.fillStyle = BRAND.jersey.number;
+    g.font = '800 13px Bitter, Georgia, serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(String(number), 20, 23);
+  }
+  g.restore();
+}
