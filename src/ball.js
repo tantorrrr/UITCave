@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BALL } from './config.js';
+import { kickSpeed, settle, spinOf, turn } from './ballPhysics.js';
 import { textCanvas } from './scenery.js';
 
 // Hiển thị quả bóng chung và hai khung thành. Vị trí thật do server quyết định (server/ball.js);
@@ -216,8 +217,9 @@ export function createBallView(scene, { fontsReady } = {}) {
 }
 
 /**
- * Mũi tên ngắm nằm trên cỏ dưới quả bóng (chỉ mình thấy). show(pos, dir, power):
- * pos null thì ẩn; power < 0 là đang đứng gần bóng (mờ, ngắn), 0..1 là đang lấy lực (dài và đỏ dần).
+ * Ngắm sút (chỉ mình thấy): mũi tên trên cỏ ngay trước bóng, và khi đang lấy lực thì thêm chuỗi
+ * chấm vẽ đường bay dự đoán (cong theo độ xoáy, dài theo lực). show(pos, dir, power, curve):
+ * pos null thì ẩn; power < 0 là đang đứng gần bóng (mờ, ngắn), 0..1 là đang lấy lực.
  */
 export function createAimArrow(scene) {
   const shape = new THREE.Shape();
@@ -238,18 +240,56 @@ export function createAimArrow(scene) {
   mesh.renderOrder = 2;
   mesh.visible = false;
   scene.add(mesh);
+
+  // Chấm đường bay: chạy thử vật lý thật của bóng (không tính va chạm) trong một khoảng thời gian.
+  const DOTS = 28;
+  const dotGeo = new THREE.CircleGeometry(0.14, 10);
+  dotGeo.rotateX(-Math.PI / 2);
+  const dotMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, depthWrite: false });
+  const dots = new THREE.InstancedMesh(dotGeo, dotMat, DOTS);
+  dots.renderOrder = 2;
+  dots.frustumCulled = false;
+  dots.visible = false;
+  scene.add(dots);
+  const m4 = new THREE.Matrix4();
+  const fly = { vx: 0, vz: 0, spin: 0 };
+
   const color = new THREE.Color();
   return {
-    show(pos, dir, power) {
+    show(pos, dir, power, curve = 0) {
       mesh.visible = !!pos;
+      const charging = !!pos && power >= 0;
+      dots.visible = charging;
       if (!pos) return;
-      const charging = power >= 0;
-      const len = charging ? 1.6 + power * 3.4 : 1.3;
+      const len = charging ? 1.4 : 1.3;
       mesh.scale.set(charging ? 1.3 : 1, 1, len);
       mesh.position.set(pos.x + dir.x * (BALL.radius + 0.1), 0.04, pos.z + dir.z * (BALL.radius + 0.1));
       mesh.rotation.y = Math.atan2(dir.x, dir.z);
       mat.opacity = charging ? 0.85 : 0.3;
       mat.color.copy(charging ? color.setHSL((120 - power * 120) / 360, 0.85, 0.55) : color.set('#ffffff'));
+      if (!charging) return;
+      dotMat.color.copy(mat.color);
+      // Dự đoán 0.35s → 1.1s đường bay tuỳ lực, chia đều cho các chấm.
+      const speed = kickSpeed(power);
+      Object.assign(fly, { vx: dir.x * speed, vz: dir.z * speed, spin: spinOf(curve) });
+      const span = 0.35 + power * 0.75;
+      const sub = 4;
+      const dt = span / DOTS / sub;
+      let x = pos.x;
+      let z = pos.z;
+      for (let i = 0; i < DOTS; i++) {
+        for (let k = 0; k < sub; k++) {
+          turn(fly, dt);
+          x += fly.vx * dt;
+          z += fly.vz * dt;
+          settle(fly, dt);
+        }
+        const s = 1 - (i / DOTS) * 0.6; // chấm nhỏ dần về cuối
+        m4.makeScale(s, 1, s).setPosition(x, 0.05, z);
+        dots.setMatrixAt(i, m4);
+      }
+      dots.instanceMatrix.needsUpdate = true;
+      dotMat.opacity = 0.8;
     },
   };
 }

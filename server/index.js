@@ -333,7 +333,7 @@ wss.on('connection', (ws) => {
       case 'kick': {
         if (!ball || now - (me.lastKick ?? 0) < KICK_COOLDOWN_MS) return;
         me.lastKick = now;
-        if (ball.kick(me, msg.power, msg.aim)) broadcast({ t: 'kick', by: me.id });
+        if (ball.kick(me, msg.power, msg.aim, msg.curve)) broadcast({ t: 'kick', by: me.id });
         break;
       }
       case 'chat': {

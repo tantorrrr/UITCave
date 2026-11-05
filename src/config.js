@@ -53,8 +53,10 @@ export const BALL = {
   friction: 1.1, // càng lớn bóng càng nhanh dừng
   dribbleSpeed: 1.6, // đứng yên chạm bóng: đẩy nhẹ ra
   dribbleBoost: 1.15, // đang chạy: bóng lăn nhanh hơn người chút xíu nên vẫn dính chân
-  kickMin: 5, // chạm nhẹ (bấm nhả ngay)
-  kickMax: 22, // giữ đủ lực
+  kickMin: 10, // chạm nhẹ (bấm nhả ngay)
+  kickMax: 44, // giữ đủ lực
+  curveRate: 0.035, // độ cong tối đa của đường bóng xoáy (= 1 / bán kính vòng cung)
+  spinDecay: 0.3, // xoáy tắt dần theo thời gian
   chargeMs: 900, // thời gian giữ để đầy lực
   kickRange: 2.2,
   // Hai khung thành ở hai đầu sân (±x); vạch vôi ở |x| = goalLineX (= PITCH.halfLength).
