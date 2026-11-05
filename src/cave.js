@@ -1655,8 +1655,24 @@ export function mountCave(app, { profile, onLeave }) {
     net.send({ t: 'punch', target: target.id });
   }
 
+  // Đang dắt bóng (đi về phía bóng, bóng sát chân trên server): máy mình vẽ bóng ngay trước mũi giày.
+  let lastShotAt = 0;
+  let dribbling = false;
+  function dribbleLead() {
+    const b = ballView?.serverPos;
+    if (!b || !moveAim || me.avatar.ghost || b.y > 0.3 || performance.now() - lastShotAt < 600) return null;
+    const dx = b.x - me.pos.x;
+    const dz = b.z - me.pos.z;
+    const d = Math.hypot(dx, dz);
+    // Bóng ở phía trước theo hướng chạy, trong tầm (nới rộng một chút khi đang dắt để khỏi chập chờn).
+    if (d > (dribbling ? 2.6 : 2.0) || (d > 0.3 && (dx * moveAim.x + dz * moveAim.z) / d < 0.2)) return null;
+    const reach = 0.55 + BALL.radius + 0.15;
+    return { x: me.pos.x + moveAim.x * reach, z: me.pos.z + moveAim.z * reach };
+  }
+
   function releaseShot() {
     if (!charge) return;
+    lastShotAt = performance.now();
     const power = chargePower();
     const curve = charge.curve;
     const loft = charge.loft;
@@ -1894,6 +1910,9 @@ export function mountCave(app, { profile, onLeave }) {
       ring.color.set(o === target ? '#ff3b30' : '#ffffff');
       ring.opacity = o === target ? 0.9 : 0;
     }
+    const lead = dribbleLead();
+    dribbling = !!lead;
+    ballView?.setLead(lead);
     const canKick = ballDistance() <= BALL.kickRange;
     // Đang lấy lực: nhả phím F (kể cả phím do bộ gõ giữ tạm) thì sút; thành ma thì huỷ.
     if (charge?.src === 'key' && !isHeld('KeyF')) releaseShot();

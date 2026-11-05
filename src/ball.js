@@ -168,10 +168,21 @@ export function createBallView(scene, { fontsReady } = {}) {
   const axis = new THREE.Vector3();
   const q = new THREE.Quaternion();
   let bounce = 0;
+  // Mình đang dắt bóng: vẽ bóng ngay trước chân mình (theo vị trí của máy mình) thay vì chờ server,
+  // vì bóng từ server luôn trễ hơn nhân vật của mình và sẽ trông như lăn sau lưng.
+  let lead = null;
 
   return {
     get position() {
       return shown;
+    },
+    /** Vị trí bóng theo server (chưa làm mượt) và độ cao. */
+    get serverPos() {
+      return { x: target.x, z: target.z, y: height };
+    },
+    /** {x, z}: đang dắt bóng, vẽ bóng tại đây; null: theo server như thường. */
+    setLead(p) {
+      lead = p;
     },
     /** b = [x, z, vx, vz, y, vy] từ tin `state` (server cũ không gửi y, vy). */
     setState(b) {
@@ -198,9 +209,9 @@ export function createBallView(scene, { fontsReady } = {}) {
     },
     update(dt) {
       const ahead = Math.min(0.15, (performance.now() - recvAt) / 1000);
-      const px = target.x + vel.x * ahead;
-      const pz = target.z + vel.z * ahead;
-      const k = 1 - Math.exp(-dt * 14);
+      const px = lead ? lead.x : target.x + vel.x * ahead;
+      const pz = lead ? lead.z : target.z + vel.z * ahead;
+      const k = 1 - Math.exp(-dt * (lead ? 20 : 14));
       prev.copy(shown);
       shown.x += (px - shown.x) * k;
       shown.z += (pz - shown.z) * k;
