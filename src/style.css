@@ -216,7 +216,8 @@ html, body {
   text-align: center;
   width: min(360px, calc(100vw - 24px));
 }
-.poll-q { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.poll-q { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.poll-meta { font-size: 11px; color: var(--gold); margin-bottom: 8px; min-height: 4px; }
 .poll-opts { display: flex; gap: 6px; }
 .poll-opts button {
   flex: 1;

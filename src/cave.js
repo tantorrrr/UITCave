@@ -542,13 +542,26 @@ function buildHud(app, { onLeave }) {
     hideChat.textContent = chat.classList.contains('collapsed') ? 'Hiện' : 'Ẩn';
   });
 
-  const pollBtns = POLL.options.map((text, i) => {
-    const countEl = el('span', { className: 'count' }, '0');
-    const b = el('button', { type: 'button' }, kbd(String(i + 1)), text, countEl);
-    b.countEl = countEl;
-    return b;
-  });
-  const poll = el('div', { className: 'poll' }, el('div', { className: 'poll-q' }, `🗳️ ${POLL.question}`), el('div', { className: 'poll-opts' }, ...pollBtns));
+  // Bình chọn: câu hỏi và nút do server gửi (trận sắp đá gần nhất), dựng lại khi đổi trận.
+  const pollQ = el('div', { className: 'poll-q' });
+  const pollMeta = el('div', { className: 'poll-meta' });
+  const pollOpts = el('div', { className: 'poll-opts' });
+  const poll = el('div', { className: 'poll' }, pollQ, pollMeta, pollOpts);
+  let pollBtns = [];
+  let onVote = () => {};
+  function setPoll(p) {
+    pollQ.textContent = `🗳️ ${p.question}`;
+    pollMeta.textContent = p.kickoff ? `${formatKickoff(p.kickoff)} · ${shortLeague(p.league)}` : '';
+    pollBtns = p.options.map((text, i) => {
+      const countEl = el('span', { className: 'count' }, '0');
+      const b = el('button', { type: 'button' }, kbd(String(i + 1)), text, countEl);
+      b.countEl = countEl;
+      b.addEventListener('click', () => onVote(i));
+      return b;
+    });
+    pollOpts.replaceChildren(...pollBtns);
+  }
+  setPoll({ question: POLL.question, options: POLL.options });
 
   const celebrate = el('button', { className: 'btn-celebrate', type: 'button' }, '🎉 Ăn mừng', kbd('G'));
   const keysBtn = el('button', { className: 'pill btn-keys', type: 'button' }, 'Phím (H)');
@@ -663,7 +676,14 @@ function buildHud(app, { onLeave }) {
   keysBtn.addEventListener('click', toggleHelp);
 
   return {
-    hud, input, log, volume, muteBtn, videoBtn, pollBtns, celebrate, punchHint, punchTouch, joy, isTouch,
+    hud, input, log, volume, muteBtn, videoBtn, celebrate, punchHint, punchTouch, joy, isTouch,
+    get pollBtns() {
+      return pollBtns;
+    },
+    setPoll,
+    set onVote(fn) {
+      onVote = fn;
+    },
     setCount: (n) => (count.textContent = `${n} anh em trong hang`),
     showToast, addChat, card, toggleHelp,
     setMyHp(hp, ghost) {
@@ -822,6 +842,8 @@ export function mountCave(app, { profile, onLeave }) {
 
   // --- Bình chọn ------------------------------------------------------------
   let myVote = null;
+  let pollMatchId = null;
+  let pollSize = POLL.options.length;
   function renderPoll(counts) {
     hud.pollBtns.forEach((b, i) => {
       b.countEl.textContent = counts[i] ?? 0;
@@ -829,9 +851,18 @@ export function mountCave(app, { profile, onLeave }) {
     });
   }
   let lastCounts = POLL.options.map(() => 0);
-  hud.pollBtns.forEach((b, i) => b.addEventListener('click', () => vote(i)));
+  function applyPoll(p) {
+    pollMatchId = p.matchId;
+    pollSize = p.options.length;
+    myVote = p.mine;
+    lastCounts = p.counts;
+    hud.setPoll(p);
+    renderPoll(lastCounts);
+  }
+  hud.onVote = vote;
   function vote(i) {
-    net.send({ t: 'vote', v: i });
+    if (i >= pollSize) return;
+    net.send({ t: 'vote', v: i, matchId: pollMatchId });
   }
 
   // --- Mạng -----------------------------------------------------------------
@@ -853,8 +884,7 @@ export function mountCave(app, { profile, onLeave }) {
       msg.players.forEach(addOther);
       hud.log.replaceChildren();
       msg.chat.forEach(hud.addChat);
-      lastCounts = msg.poll.counts;
-      renderPoll(lastCounts);
+      applyPoll(msg.poll);
       updateCount();
       loading.remove();
       maybeTutorial();
@@ -914,10 +944,15 @@ export function mountCave(app, { profile, onLeave }) {
       if (msg.id === myId) audio.cheer();
     },
     poll(msg) {
+      applyPoll(msg);
+    },
+    pollcounts(msg) {
+      if (msg.matchId !== pollMatchId) return;
       lastCounts = msg.counts;
       renderPoll(lastCounts);
     },
     myvote(msg) {
+      if (msg.matchId !== pollMatchId) return;
       myVote = msg.v;
       renderPoll(lastCounts);
     },
@@ -1018,7 +1053,7 @@ export function mountCave(app, { profile, onLeave }) {
     else if (k === 'h') hud.toggleHelp();
     else if (k === 'm') toggleMute();
     else if (k === 'v') toggleVideo();
-    else if (k >= '1' && k <= String(POLL.options.length)) vote(Number(k) - 1);
+    else if (k >= '1' && k <= '9') vote(Number(k) - 1);
   }
   const onKeyUp = (e) => keys.delete(e.code);
   const onBlur = () => keys.clear();

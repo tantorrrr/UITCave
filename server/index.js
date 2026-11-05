@@ -125,10 +125,36 @@ function pushChat(entry) {
   broadcast({ t: 'chat', ...entry });
 }
 
+// --- Bình chọn: theo trận sắp đá gần nhất; hết lịch thì dùng câu hỏi mặc định trong config ---
+let poll = { matchId: 'default', question: POLL.question, options: POLL.options, kickoff: null, league: '' };
+
 function pollCounts() {
-  const counts = POLL.options.map(() => 0);
+  const counts = poll.options.map(() => 0);
   for (const v of votes.values()) counts[v]++;
   return counts;
+}
+
+function pollPayload(playerId) {
+  return { ...poll, counts: pollCounts(), mine: votes.get(playerId) ?? null };
+}
+
+// Trận gần nhất đổi (trận cũ đã đá) thì mở bình chọn mới và báo mọi người.
+async function refreshPoll() {
+  // Lịch cache tới 30 phút nên lọc lại theo giờ hiện tại, bỏ trận đã bắt đầu.
+  const next = (await loadFixtures()).find((m) => Date.parse(m.date) > Date.now());
+  const matchId = next?.id ?? 'default';
+  if (matchId === poll.matchId) return;
+  poll = next
+    ? {
+        matchId,
+        question: `${next.home} vs ${next.away}: ai thắng?`,
+        options: [`${next.home} thắng`, 'Hoà', `${next.away} thắng`],
+        kickoff: next.date,
+        league: next.league,
+      }
+    : { matchId, question: POLL.question, options: POLL.options, kickoff: null, league: '' };
+  votes.clear();
+  for (const p of players.values()) send(p.ws, { t: 'poll', ...pollPayload(p.id) });
 }
 
 function cleanName(raw) {
@@ -190,8 +216,9 @@ wss.on('connection', (ws) => {
         id: me.id,
         players: [...players.values()].map(publicInfo),
         chat: chatLog,
-        poll: { counts: pollCounts(), mine: null },
+        poll: pollPayload(me.id),
       });
+      refreshPoll().catch(() => {});
       broadcast({ t: 'join', p: publicInfo(me) }, me.id);
       pushChat({ sys: true, text: `${me.name} vừa vào hang` });
       return;
@@ -240,11 +267,13 @@ wss.on('connection', (ws) => {
         break;
       case 'vote': {
         const v = msg.v | 0;
-        if (v < 0 || v >= POLL.options.length || votes.get(me.id) === v) return;
+        // Bỏ phiếu gửi cho trận cũ (client chưa kịp nhận bình chọn mới) thì bỏ qua.
+        if (msg.matchId !== poll.matchId) return;
+        if (v < 0 || v >= poll.options.length || votes.get(me.id) === v) return;
         votes.set(me.id, v);
-        send(ws, { t: 'myvote', v });
-        broadcast({ t: 'poll', counts: pollCounts() });
-        pushChat({ sys: true, text: `${me.name} 🗳️ Bình chọn: ${POLL.options[v]}` });
+        send(ws, { t: 'myvote', v, matchId: poll.matchId });
+        broadcast({ t: 'pollcounts', matchId: poll.matchId, counts: pollCounts() });
+        pushChat({ sys: true, text: `${me.name} 🗳️ ${poll.options[v]}` });
         break;
       }
     }
@@ -271,6 +300,10 @@ setInterval(() => {
   const ps = [...players.values()].map((p) => [p.id, +p.x.toFixed(2), +p.z.toFixed(2), +p.ry.toFixed(2), p.a]);
   broadcast({ t: 'state', ps });
 }, TICK_MS);
+
+// Kiểm trận gần nhất mỗi phút (dữ liệu lịch đã cache 30 phút nên không gọi ESPN dồn dập).
+refreshPoll().catch(() => {});
+setInterval(() => refreshPoll().catch(() => {}), 60 * 1000);
 
 server.listen(PORT, () => {
   console.log(`Hang Uit server: http://localhost:${PORT}  (ws: /ws)`);
