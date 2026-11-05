@@ -14,6 +14,8 @@ const PUNCH_RANGE = 2.4;
 const PUNCH_COOLDOWN_MS = 700;
 const CHAT_COOLDOWN_MS = 800;
 const CHAT_HISTORY = 30;
+const MAX_HP = 5;
+const GHOST_MS = 30000; // làm ma 30 giây rồi hồi sinh đầy máu
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -91,7 +93,12 @@ function cleanNumber(raw) {
 }
 
 function publicInfo(p) {
-  return { id: p.id, name: p.name, number: p.number, x: p.x, z: p.z, ry: p.ry, a: p.a };
+  return { id: p.id, name: p.name, number: p.number, x: p.x, z: p.z, ry: p.ry, a: p.a, hp: p.hp, ghostLeft: ghostLeft(p) };
+}
+
+// Gửi số ms còn lại thay vì mốc giờ server để khỏi lệch đồng hồ máy người chơi.
+function ghostLeft(p) {
+  return p.ghostUntil ? Math.max(0, p.ghostUntil - Date.now()) : 0;
 }
 
 function spawnPoint() {
@@ -123,6 +130,8 @@ wss.on('connection', (ws) => {
         z: spawn.z,
         ry: 0,
         a: 0,
+        hp: MAX_HP,
+        ghostUntil: 0,
         lastPunch: 0,
         lastChat: 0,
       };
@@ -163,10 +172,18 @@ wss.on('connection', (ws) => {
       case 'punch': {
         const target = players.get(msg.target);
         if (!target || target === me || now - me.lastPunch < PUNCH_COOLDOWN_MS) return;
+        // Ma không đánh được và cũng không bị đánh.
+        if (me.ghostUntil || target.ghostUntil) return;
         if (Math.hypot(target.x - me.x, target.z - me.z) > PUNCH_RANGE) return;
         me.lastPunch = now;
-        broadcast({ t: 'punch', by: me.id, target: target.id });
+        target.hp -= 1;
+        if (target.hp <= 0) {
+          target.hp = 0;
+          target.ghostUntil = now + GHOST_MS;
+        }
+        broadcast({ t: 'punch', by: me.id, target: target.id, hp: target.hp, ghostLeft: ghostLeft(target) });
         pushChat({ sys: true, text: `${me.name} đã 👊 ${target.name}` });
+        if (target.ghostUntil) pushChat({ sys: true, text: `👻 ${target.name} đã thành ma` });
         break;
       }
       case 'celebrate':
@@ -193,6 +210,15 @@ wss.on('connection', (ws) => {
 
 setInterval(() => {
   if (players.size === 0) return;
+  const now = Date.now();
+  for (const p of players.values()) {
+    if (p.ghostUntil && now >= p.ghostUntil) {
+      p.ghostUntil = 0;
+      p.hp = MAX_HP;
+      broadcast({ t: 'revive', id: p.id, hp: p.hp });
+      pushChat({ sys: true, text: `✨ ${p.name} đã hồi sinh` });
+    }
+  }
   const ps = [...players.values()].map((p) => [p.id, +p.x.toFixed(2), +p.z.toFixed(2), +p.ry.toFixed(2), p.a]);
   broadcast({ t: 'state', ps });
 }, TICK_MS);

@@ -95,7 +95,20 @@ export function createAvatar(number) {
   ring.position.y = 0.02;
   root.add(ring);
 
-  const anim = { walk: 0, punch: 0, celebrate: 0, hit: 0 };
+  const anim = { walk: 0, punch: 0, celebrate: 0, hit: 0, ghost: false, t: 0 };
+
+  // Ma: mọi phần (trừ vòng dưới chân) mờ đi, không đổ bóng, bay lơ lửng.
+  function setGhost(on) {
+    anim.ghost = on;
+    root.traverse((o) => {
+      if (!o.isMesh || o === ring) return;
+      o.material.transparent = on;
+      o.material.opacity = on ? 0.32 : 1;
+      o.material.depthWrite = !on;
+      o.material.needsUpdate = true; // đổi transparent phải biên dịch lại shader
+      o.castShadow = !on;
+    });
+  }
 
   function update(dt, moving) {
     anim.walk += dt * (moving ? 10 : 0);
@@ -118,7 +131,8 @@ export function createAvatar(number) {
     } else {
       arms[0].rotation.z = 0;
       arms[1].rotation.z = 0;
-      root.position.y = 0;
+      anim.t += dt;
+      root.position.y = anim.ghost ? 0.35 + Math.sin(anim.t * 2.5) * 0.12 : 0;
     }
     if (anim.hit > 0) {
       anim.hit = Math.max(0, anim.hit - dt);
@@ -135,6 +149,10 @@ export function createAvatar(number) {
     punch: () => (anim.punch = 0.35),
     celebrate: () => (anim.celebrate = 1.6),
     hit: () => (anim.hit = 0.5),
+    setGhost,
+    get ghost() {
+      return anim.ghost;
+    },
     get celebrating() {
       return anim.celebrate > 0;
     },

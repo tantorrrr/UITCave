@@ -12,6 +12,7 @@ const CAVE_RADIUS = 21;
 const FIRE_RADIUS = 1.4;
 const WALK_SPEED = 5;
 const PUNCH_RANGE = 2.2;
+const MAX_HP = 5; // khớp với server/index.js
 const SEND_INTERVAL = 1 / 15;
 const SCREEN_Z = -19;
 const TUTORIAL_KEY = 'hanguit.tutorial.punch';
@@ -422,7 +423,9 @@ function buildHud(app, { onLeave }) {
   const volume = el('input', { type: 'range', min: 0, max: 1, step: 0.05, value: 0.6, 'aria-label': 'Âm lượng' });
   const muteBtn = el('button', { className: 'pill', type: 'button', style: 'padding:6px 8px' }, '🔊');
   const videoBtn = el('button', { className: 'pill', type: 'button' }, '📺 Tiếng video');
-  const top = el('div', { className: 'hud-top' }, leave, el('div', { className: 'pill vol' }, muteBtn, volume), videoBtn);
+  const myHp = el('div', { className: 'pill my-hp', 'aria-label': 'Máu của bạn' });
+  const top = el('div', { className: 'hud-top' }, leave, myHp, el('div', { className: 'pill vol' }, muteBtn, volume), videoBtn);
+  const ghostBanner = el('div', { className: 'ghost-banner' });
 
   const count = el('span', {}, '…');
   const roomInfo = el('div', { className: 'room-info' }, el('b', {}, BRAND.roomName), count);
@@ -456,7 +459,7 @@ function buildHud(app, { onLeave }) {
   const punchTouch = el('button', { className: 'btn-punch', type: 'button', 'aria-label': 'Đấm' }, '👊');
 
   const isTouch = matchMedia('(pointer: coarse)').matches;
-  const hud = el('div', { className: `hud${isTouch ? ' touch' : ''}` }, top, roomInfo, chat, poll, celebrate, keysBtn, hint, toast, punchHint, joystick, punchTouch);
+  const hud = el('div', { className: `hud${isTouch ? ' touch' : ''}` }, top, roomInfo, chat, poll, celebrate, keysBtn, hint, toast, punchHint, joystick, punchTouch, ghostBanner);
   app.append(hud);
   if (isTouch) {
     chat.classList.add('collapsed');
@@ -560,6 +563,16 @@ function buildHud(app, { onLeave }) {
     hud, input, log, volume, muteBtn, videoBtn, pollBtns, celebrate, punchHint, punchTouch, joy, isTouch,
     setCount: (n) => (count.textContent = `${n} anh em trong hang`),
     showToast, addChat, card, toggleHelp,
+    setMyHp(hp, ghost) {
+      myHp.textContent = ghost ? '👻 Ma' : '❤'.repeat(hp) + '♡'.repeat(MAX_HP - hp);
+      myHp.classList.toggle('low', !ghost && hp <= 2);
+      punchTouch.classList.toggle('disabled', ghost);
+    },
+    // secondsLeft > 0: đang làm ma, hiện đếm ngược; 0: ẩn.
+    setGhostCountdown(secondsLeft) {
+      ghostBanner.classList.toggle('show', secondsLeft > 0);
+      if (secondsLeft > 0) ghostBanner.textContent = `👻 Bạn đang là ma, không đánh được ai. Hồi sinh sau ${secondsLeft}s`;
+    },
   };
 }
 
@@ -623,13 +636,18 @@ export function mountCave(app, { profile, onLeave }) {
     const node = el('div', { className: `nametag${isMe ? ' me' : ''}` });
     if (number) node.append(el('span', { className: 'no' }, String(number)));
     node.append(name);
-    const wrap = el('div', { style: 'position:relative' }, node);
+    const hearts = el('div', { className: 'hearts' });
+    const wrap = el('div', { style: 'position:relative' }, node, hearts);
     const obj = new CSS2DObject(wrap);
     obj.position.set(0, 2.15, 0);
     let bubble = null;
     let bubbleTimer = 0;
     return {
       obj,
+      setHp(hp, ghost) {
+        hearts.textContent = ghost ? '👻' : '❤'.repeat(hp) + '♡'.repeat(MAX_HP - hp);
+        wrap.classList.toggle('ghost', ghost);
+      },
       say(text) {
         bubble?.remove();
         bubble = el('div', { className: 'bubble' }, text);
@@ -649,6 +667,22 @@ export function mountCave(app, { profile, onLeave }) {
     avatar.root.rotation.y = p.ry;
     scene.add(avatar.root);
     others.set(p.id, { id: p.id, name: p.name, avatar, label, target: new THREE.Vector3(p.x, 0, p.z), ry: p.ry, a: 0 });
+    setHealth(p.id, p.hp ?? MAX_HP, p.ghostLeft ?? 0);
+  }
+
+  // --- Máu / ma -------------------------------------------------------------
+  let myGhostUntil = 0;
+  function setHealth(id, hp, ghostLeft) {
+    const ghost = ghostLeft > 0;
+    const avatar = avatarOf(id);
+    if (avatar && avatar.ghost !== ghost) avatar.setGhost(ghost);
+    if (id === myId) {
+      myLabel.setHp(hp, ghost);
+      myGhostUntil = ghost ? performance.now() + ghostLeft : 0;
+      hud.setMyHp(hp, ghost);
+    } else {
+      others.get(id)?.label.setHp(hp, ghost);
+    }
   }
 
   function removeOther(id) {
@@ -696,7 +730,10 @@ export function mountCave(app, { profile, onLeave }) {
       for (const id of [...others.keys()]) removeOther(id);
       myId = msg.id;
       const self = msg.players.find((p) => p.id === myId);
-      if (self) me.pos.set(self.x, 0, self.z);
+      if (self) {
+        me.pos.set(self.x, 0, self.z);
+        setHealth(myId, self.hp ?? MAX_HP, self.ghostLeft ?? 0);
+      }
       me.ry = Math.atan2(-me.pos.x, -me.pos.z);
       camYaw = me.ry + Math.PI;
       msg.players.forEach(addOther);
@@ -734,7 +771,11 @@ export function mountCave(app, { profile, onLeave }) {
     punch(msg) {
       avatarOf(msg.by)?.punch();
       avatarOf(msg.target)?.hit();
-      if (msg.target === myId) {
+      setHealth(msg.target, msg.hp, msg.ghostLeft);
+      if (msg.target === myId && msg.ghostLeft > 0) {
+        hud.showToast(`👻 ${nameOf(msg.by)} hạ gục bạn, bạn thành ma!`);
+        audio.punch();
+      } else if (msg.target === myId) {
         const by = others.get(msg.by);
         if (by) {
           const dir = me.pos.clone().sub(by.avatar.root.position).setY(0);
@@ -746,6 +787,10 @@ export function mountCave(app, { profile, onLeave }) {
       } else if (msg.by === myId) {
         audio.punch();
       }
+    },
+    revive(msg) {
+      setHealth(msg.id, msg.hp, 0);
+      if (msg.id === myId) hud.showToast('✨ Bạn đã hồi sinh!');
     },
     celebrate(msg) {
       const av = avatarOf(msg.id);
@@ -822,6 +867,10 @@ export function mountCave(app, { profile, onLeave }) {
   const canvas = renderer.domElement;
 
   function doPunch() {
+    if (me.avatar.ghost) {
+      hud.showToast('👻 Ma không đánh được ai');
+      return;
+    }
     const target = punchTarget();
     if (!target) return;
     me.ry = Math.atan2(target.avatar.root.position.x - me.pos.x, target.avatar.root.position.z - me.pos.z);
@@ -884,11 +933,13 @@ export function mountCave(app, { profile, onLeave }) {
   addEventListener('blur', onBlur);
 
   function punchTarget() {
+    if (me.avatar.ghost) return null;
     let best = null;
     let bestScore = Infinity;
     const fx = Math.sin(me.ry);
     const fz = Math.cos(me.ry);
     for (const o of others.values()) {
+      if (o.avatar.ghost) continue;
       const dx = o.avatar.root.position.x - me.pos.x;
       const dz = o.avatar.root.position.z - me.pos.z;
       const d = Math.hypot(dx, dz);
@@ -975,6 +1026,7 @@ export function mountCave(app, { profile, onLeave }) {
     }
     hud.punchHint.classList.toggle('show', !!target && !hud.isTouch && document.pointerLockElement !== canvas);
     hud.punchTouch.classList.toggle('ready', !!target);
+    hud.setGhostCountdown(myGhostUntil ? Math.max(1, Math.ceil((myGhostUntil - now) / 1000)) : 0);
 
     // Gửi vị trí ~15 lần/giây, chỉ khi có thay đổi.
     sendAcc += dt;
