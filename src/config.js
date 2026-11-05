@@ -42,16 +42,33 @@ export const SCOREBOARD = {
   note: 'Vào đây giao lưu võ thuật 👊',
   // Video YouTube chiếu dưới bảng tỉ số, phát ngẫu nhiên lần lượt. Để mảng rỗng = không chiếu.
   // Chỉ dùng video của kênh chính thức có cho nhúng (video chặn nhúng sẽ tự bị bỏ qua).
+  // Đã kiểm cho nhúng ngày 2026-11-05. Phần lớn highlight trận của Man Utd bị chặn nhúng.
   youtubeIds: [
-    '6Pn5qnuCVg8', // Highlights: Liverpool 1-1 Chelsea | Reds win on penalties!
-    'hn3fpfByQCc', // Extended Highlights: Liverpool 1-1 Chelsea | Penalty shootout win!
-    'XwZmyMvOtyw', // Liverpool vs Chelsea | Full penalty shootout | 6-5 | Carabao Cup
-    'BORuDyEx8zI', // Extended Highlights: Brentford 1-2 Liverpool | Late Reds comeback!
-    'iSPDVKdWoJU', // Highlights: Liverpool 4-3 Villarreal | Champions League comeback win!
-    'oQ801H0LOT8', // Extended Highlights: Liverpool 2-0 Brighton
-    '0GVEp6T5JIo', // Inside Anfield: Liverpool vs Chelsea
-    'r9UcOBrPqPo', // Top 10: BEST Liverpool vs Arsenal Premier League games at Anfield
-    'U9t2xbnyGOY', // Diogo Jota: Every Goal | Liverpool FC
+    // Liverpool FC
+    '6Pn5qnuCVg8', // Highlights: Liverpool 1-1 Chelsea | Reds win on penalties! (1.6M)
+    'hn3fpfByQCc', // Extended Highlights: Liverpool 1-1 Chelsea (1.2M)
+    'XwZmyMvOtyw', // Liverpool vs Chelsea | Full penalty shootout (989K)
+    'BORuDyEx8zI', // Extended Highlights: Brentford 1-2 Liverpool (849K)
+    'iSPDVKdWoJU', // Highlights: Liverpool 4-3 Villarreal (710K)
+    // Man City
+    'hgIaOCoVsDQ', // HIGHLIGHTS | Man City 5-3 Sunderland (3.7M)
+    'VihHixlyZiM', // Man City 5-0 Norwich | Highlights (3.5M)
+    'i_BqweuiZhg', // HIGHLIGHTS | Liverpool 0-3 Man City (3.4M)
+    'SEtYQhJAMTA', // HIGHLIGHTS | Porto 0-2 Man City (3.1M)
+    'dVFiXhUKXmI', // EXTENDED HIGHLIGHTS | Man City 5-3 Sunderland (2.6M)
+    // Chelsea
+    'mL-qGgJf6Ug', // Chelsea 5-1 Bournemouth | HIGHLIGHTS (3.5M)
+    '06dvvp2ORLM', // Chelsea 5-1 Bournemouth | HIGHLIGHTS - Extended (2M)
+    'OI58_-4ezU8', // Chelsea 2-0 Man Utd | HIGHLIGHTS (1.7M)
+    'xt7v2R-ap_c', // Everton 0-2 Chelsea | HIGHLIGHTS (1.1M)
+    // Arsenal
+    'e3WsysMfn0Q', // HIGHLIGHTS | Arsenal vs Lille (3-0) (1.3M)
+    'Zt1VugPdwFw', // HIGHLIGHTS | Liverpool vs Arsenal (0-1) (1.2M)
+    'dx7x6C5-diY', // Bayern Munich vs Arsenal (2-2) | Champions League (1.2M)
+    // Manchester United
+    'ncVXv8kAOaA', // Michael Carrick's Powerful Statement | Press Conference (333K)
+    'dTCA1UfrKkY', // Chelsea 2-0 Man Utd | Extended Highlights (287K)
+    '1ByXkUgYQls', // Charging Up For Chelsea! | Inside Training (187K)
   ],
 };
 
