@@ -8,11 +8,11 @@ import { createBanners, latestOutcomes } from './banners.js';
 import { createBallView } from './ball.js';
 import { createAudio } from './audio.js';
 import { connect } from './net.js';
-import { createCampfire, createTorch, rng, rockGeometry, rockMaterial, textCanvas } from './scenery.js';
+import { createTorch, rng, rockGeometry, rockMaterial, textCanvas } from './scenery.js';
+import { createPitch } from './pitch.js';
 import { el } from './util.js';
 
 const CAVE_RADIUS = ARENA.caveRadius;
-const FIRE_RADIUS = ARENA.fireRadius;
 const WALK_SPEED = ARENA.walkSpeed;
 const PUNCH_RANGE = 2.2;
 const MAX_HP = 5; // khớp với server/index.js
@@ -75,32 +75,8 @@ function buildCave(scene) {
   }
   scene.add(stal);
 
-  // Bậc ngồi kiểu khán đài vòng quanh đống lửa, chừa lối nhìn lên màn hình.
-  const benchMat = new THREE.MeshStandardMaterial({ color: '#7b5a44', roughness: 0.95, flatShading: true });
-  const rows = [
-    { r: 4.2, h: 0.35 },
-    { r: 6.0, h: 0.6 },
-    { r: 7.8, h: 0.85 },
-  ];
-  for (const { r, h } of rows) {
-    const n = Math.round(r * 5);
-    const benches = new THREE.InstancedMesh(new THREE.BoxGeometry(1, h, 1.1), benchMat, n);
-    let k = 0;
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2;
-      // Khoảng trống hướng về màn hình (phía -z).
-      if (Math.abs(Math.atan2(Math.sin(a + Math.PI / 2), Math.cos(a + Math.PI / 2))) < 0.45) continue;
-      m4.compose(
-        new THREE.Vector3(Math.cos(a) * r, h / 2, Math.sin(a) * r),
-        new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -a),
-        new THREE.Vector3(1, 1, (2 * Math.PI * r) / n),
-      );
-      benches.setMatrixAt(k++, m4);
-    }
-    benches.count = k;
-    benches.receiveShadow = true;
-    scene.add(benches);
-  }
+  // Sân bóng mini giữa hang (thay cho bậc ngồi và đống lửa trước đây), có đèn sân riêng.
+  createPitch(scene);
 
   // Đá rải quanh chân tường.
   const rockMat = rockMaterial('#5e4234');
@@ -112,9 +88,6 @@ function buildCave(scene) {
     m.rotation.set(rand() * 3, rand() * 3, rand() * 3);
     scene.add(m);
   }
-
-  const fire = createCampfire();
-  scene.add(fire.group);
 
   // Đuốc, cờ, chân dung treo quanh tường.
   const torches = [];
@@ -174,7 +147,7 @@ function buildCave(scene) {
     scene.add(banner);
   }
 
-  return { fire, torches, gallery };
+  return { torches, gallery };
 }
 
 /** Bảng "Kết quả gần đây" đặt cạnh màn hình lớn. Trả về setResults(matches). */
@@ -1186,7 +1159,7 @@ export function mountCave(app, { profile, onLeave }) {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 120);
-  const { fire, torches, gallery } = buildCave(scene);
+  const { torches, gallery } = buildCave(scene);
   let videoBlocked = false;
   const screen = buildScreen(scene, css3dScene, {
     onVideoError() {
@@ -1826,7 +1799,6 @@ export function mountCave(app, { profile, onLeave }) {
 
     const r = Math.hypot(me.pos.x, me.pos.z);
     if (r > CAVE_RADIUS) me.pos.multiplyScalar(CAVE_RADIUS / r);
-    if (r < FIRE_RADIUS && r > 0) me.pos.multiplyScalar(FIRE_RADIUS / r);
     // Không đi xuyên ra sau màn hình.
     if (Math.abs(me.pos.x) < SCREEN_HALF_W && me.pos.z < SCREEN_Z + 0.8) me.pos.z = SCREEN_Z + 0.8;
 
@@ -1887,7 +1859,6 @@ export function mountCave(app, { profile, onLeave }) {
     camera.position.y = Math.max(0.6, camera.position.y);
     camera.lookAt(camTarget);
 
-    fire.update(dt);
     torches.forEach((tc) => tc.update(t));
     gallery.update(dt);
     banners.update(dt);

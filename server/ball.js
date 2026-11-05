@@ -1,10 +1,11 @@
-import { ARENA, BALL } from '../src/config.js';
+import { BALL, PITCH } from '../src/config.js';
 
 // Quả bóng chung: server giữ vị trí thật, chạy vật lý 2D (mặt sàn) mỗi nhịp tick.
 // Người chơi đi chạm vào bóng thì rê bóng; bấm sút thì bóng bay mạnh theo hướng đang chạy.
 
 const PLAYER_RADIUS = 0.55;
-const WALL = ARENA.caveRadius - BALL.radius;
+const POST_RADIUS = 0.08;
+const BOUNCE = 0.75; // độ nảy khi chạm vách biên
 
 export function createBall({ onGoal } = {}) {
   const ball = { x: BALL.start.x, z: BALL.start.z, vx: 0, vz: 0 };
@@ -25,53 +26,51 @@ export function createBall({ onGoal } = {}) {
   // Bóng đang nằm trong lòng khung thành (sau vạch vôi, giữa hai cột dọc).
   const inGoalMouth = () => Math.abs(ball.x) > BALL.goalLineX && Math.abs(ball.z) < BALL.goalHalfWidth;
 
+  // Nảy vào vật tròn (cột dọc khung thành).
+  function bouncePost(px, pz) {
+    const reach = POST_RADIUS + BALL.radius;
+    const dx = ball.x - px;
+    const dz = ball.z - pz;
+    const d = Math.hypot(dx, dz);
+    if (d >= reach || d < 1e-6) return;
+    const nx = dx / d;
+    const nz = dz / d;
+    ball.x = px + nx * reach;
+    ball.z = pz + nz * reach;
+    const vn = ball.vx * nx + ball.vz * nz;
+    if (vn < 0) {
+      ball.vx -= 1.7 * vn * nx;
+      ball.vz -= 1.7 * vn * nz;
+    }
+  }
+
+  // Sân mini có vách biên: bóng nảy lại ở biên dọc và biên ngang, chỉ lọt được vào lòng khung thành.
   function collide() {
-    const back = BALL.goalLineX + BALL.goalDepth - BALL.radius;
-    if (inGoalMouth()) {
-      // Trong lưới: chặn lưới sau và hai bên.
+    const R = BALL.radius;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) bouncePost(sx * BALL.goalLineX, sz * BALL.goalHalfWidth);
+
+    if (Math.abs(ball.z) < BALL.goalHalfWidth) {
+      // Đang trong làn khung thành: được qua vạch vôi, chặn ở lưới sau.
+      const back = BALL.goalLineX + BALL.goalDepth - R;
       if (Math.abs(ball.x) > back) {
         ball.x = Math.sign(ball.x) * back;
         ball.vx *= -0.2;
       }
-    } else {
-      // Cột dọc + hai má lưới: bóng đến gần vạch vôi ngoài lòng khung thì nảy ra.
-      if (Math.abs(ball.x) > BALL.goalLineX && Math.abs(ball.z) < BALL.goalHalfWidth + 0.4 && Math.abs(ball.x) < back + 0.4) {
-        ball.z = Math.sign(ball.z || 1) * (BALL.goalHalfWidth + 0.4);
-        ball.vz *= -0.6;
+      // Trong lưới thì hai lưới bên giữ bóng lại.
+      const sideNet = BALL.goalHalfWidth - R;
+      if (Math.abs(ball.x) > BALL.goalLineX && Math.abs(ball.z) > sideNet) {
+        ball.z = Math.sign(ball.z) * sideNet;
+        ball.vz *= -0.3;
       }
+    } else if (Math.abs(ball.x) > PITCH.halfLength - R) {
+      // Vách biên ngang hai đầu sân (ngoài lòng khung thành).
+      ball.x = Math.sign(ball.x) * (PITCH.halfLength - R);
+      ball.vx *= -BOUNCE;
     }
-
-    // Vách hang: phản xạ thành phần hướng tâm.
-    const r = Math.hypot(ball.x, ball.z);
-    if (r > WALL) {
-      const nx = ball.x / r;
-      const nz = ball.z / r;
-      ball.x = nx * WALL;
-      ball.z = nz * WALL;
-      const vn = ball.vx * nx + ball.vz * nz;
-      if (vn > 0) {
-        ball.vx -= 1.7 * vn * nx;
-        ball.vz -= 1.7 * vn * nz;
-      }
-    }
-    // Đống lửa ở giữa.
-    const fr = ARENA.fireRadius + BALL.radius;
-    if (r < fr) {
-      const nx = r > 0 ? ball.x / r : 0;
-      const nz = r > 0 ? ball.z / r : 1;
-      ball.x = nx * fr;
-      ball.z = nz * fr;
-      const vn = ball.vx * nx + ball.vz * nz;
-      if (vn < 0) {
-        ball.vx -= 1.7 * vn * nx;
-        ball.vz -= 1.7 * vn * nz;
-      }
-    }
-    // Không lọt ra sau màn hình lớn.
-    const screenFront = ARENA.screenZ + 0.8 + BALL.radius;
-    if (Math.abs(ball.x) < ARENA.screenHalfW && ball.z < screenFront) {
-      ball.z = screenFront;
-      if (ball.vz < 0) ball.vz *= -0.7;
+    // Vách biên dọc.
+    if (Math.abs(ball.z) > PITCH.halfWidth - R) {
+      ball.z = Math.sign(ball.z) * (PITCH.halfWidth - R);
+      ball.vz *= -BOUNCE;
     }
   }
 

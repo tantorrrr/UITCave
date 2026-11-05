@@ -2,7 +2,6 @@
 export function createAudio() {
   let ctx = null;
   let master = null;
-  let fireNode = null;
   let muted = false;
   let volume = 0.6;
 
@@ -12,7 +11,6 @@ export function createAudio() {
     master = ctx.createGain();
     master.gain.value = muted ? 0 : volume;
     master.connect(ctx.destination);
-    startFire();
     return ctx;
   }
 
@@ -21,21 +19,6 @@ export function createAudio() {
     const d = buf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     return buf;
-  }
-
-  // Tiếng lửa tí tách nền.
-  function startFire() {
-    const src = ctx.createBufferSource();
-    src.buffer = noiseBuffer(2);
-    src.loop = true;
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 600;
-    const g = ctx.createGain();
-    g.gain.value = 0.05;
-    src.connect(filter).connect(g).connect(master);
-    src.start();
-    fireNode = g;
   }
 
   function punch() {
@@ -126,7 +109,6 @@ export function createAudio() {
       apply();
     },
     close() {
-      fireNode = null;
       ctx?.close();
     },
   };

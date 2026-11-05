@@ -33,24 +33,30 @@ export const QUIZ = [
 // Kích thước trong hang dùng chung cho client (src/cave.js) và server (server/index.js).
 export const ARENA = {
   caveRadius: 21, // người chơi và bóng không ra khỏi vòng này
-  fireRadius: 1.4, // đống lửa ở giữa
   screenZ: -17, // mặt màn hình lớn (phía -z)
   screenHalfW: 9.6, // nửa bề ngang khung màn hình
   walkSpeed: 5,
   knockSpeed: 9, // tốc độ bật lùi lúc bị đấm
 };
 
+// Sân bóng mini giữa hang: dài theo trục x, khung thành ở hai đầu (±x). Bóng nảy vào vách biên.
+export const PITCH = {
+  halfLength: 13,
+  halfWidth: 7,
+  boardHeight: 0.45,
+};
+
 // Quả bóng chung trong hang (server quyết định vị trí). enabled: false để tắt hẳn.
 export const BALL = {
   enabled: true,
   radius: 0.35,
-  start: { x: 0, z: 9 }, // gần chỗ người chơi xuất hiện
+  start: { x: 0, z: 0 }, // chấm giữa sân
   friction: 1.1, // càng lớn bóng càng nhanh dừng
   dribbleSpeed: 4.5, // chạm vào bóng khi đi
   kickSpeed: 15, // bấm sút
   kickRange: 2.2,
-  // Hai khung thành ở hai bên trái/phải (±x); vạch vôi ở |x| = goalLineX.
-  goalLineX: 16.2,
+  // Hai khung thành ở hai đầu sân (±x); vạch vôi ở |x| = goalLineX (= PITCH.halfLength).
+  goalLineX: 13,
   goalHalfWidth: 2.2,
   goalDepth: 1.6,
   goalHeight: 2.3,
