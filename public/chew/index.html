@@ -4,18 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>Thỏ Nhai Nhảy Mây</title>
-    <script type="module" crossorigin src="./assets/index-Yls1leoo.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-910Yto1e.css">
+    <script type="module" crossorigin src="./assets/index-DdngHTua.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CWXXkaxB.css">
   </head>
   <body>
     <canvas id="game"></canvas>
 
     <div id="hud" class="hidden">
       <div class="top">
-        <button id="btn-settings" class="hold small" aria-label="Cài đặt"><span class="fill"></span>⚙️</button>
+        <button id="btn-settings" class="small" aria-label="Cài đặt">⚙️</button>
         <div class="stat"><span id="height">0</span> m</div>
         <div class="stat">⭐ <span id="stars">0</span></div>
-        <button id="btn-end" class="hold small end"><span class="fill"></span>Hết cơm</button>
+        <button id="btn-end" class="small end">Hết cơm</button>
       </div>
       <div id="chews"></div>
       <div id="bubble" class="hidden"></div>
@@ -73,6 +73,16 @@
       <button id="btn-again" class="big">Ăn bữa mới</button>
     </div>
 
+    <div id="confirm-end" class="modal hidden">
+      <div class="panel">
+        <h2>Kết thúc bữa ăn?</h2>
+        <div class="row-btns">
+          <button id="btn-end-no">Ăn tiếp</button>
+          <button id="btn-end-yes" class="primary">Hết cơm rồi</button>
+        </div>
+      </div>
+    </div>
+
     <div id="settings" class="modal hidden">
       <div class="panel">
         <h2>Cài đặt cho bố mẹ</h2>
@@ -93,7 +103,7 @@
           <button id="btn-recalib">Đo lại khuôn mặt</button>
           <button id="btn-close" class="primary">Xong</button>
         </div>
-        <p class="hint">Mẹo: đặt máy ngang tầm mặt bé, đủ sáng, cách 40–60 cm. Nút ⚙️ và "Hết cơm" phải giữ 1 giây.</p>
+        <p class="hint">Mẹo: đặt máy ngang tầm mặt bé, đủ sáng, cách 40–60 cm.</p>
       </div>
     </div>
 
