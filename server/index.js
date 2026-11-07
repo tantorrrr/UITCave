@@ -36,7 +36,12 @@ const MIME = {
   '.json': 'application/json',
   '.txt': 'text/plain; charset=utf-8',
   '.xml': 'application/xml; charset=utf-8',
+  '.wasm': 'application/wasm',
+  '.mp3': 'audio/mpeg',
 };
+
+// Game con chạy ở đường dẫn con (public/chew → /chew/), có index.html riêng.
+const SUB_APPS = ['/chew'];
 
 /** @type {Map<number, any>} */
 const players = new Map();
@@ -52,6 +57,19 @@ function serveStatic(req, res) {
   const urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   let file = path.join(DIST, urlPath);
   if (!file.startsWith(DIST)) return json(res, 403, { error: 'forbidden' });
+  // /chew → /chew/ để đường dẫn tương đối (./assets/...) trong game con trỏ đúng thư mục.
+  if (SUB_APPS.includes(urlPath)) {
+    res.writeHead(301, { Location: urlPath + '/' });
+    return res.end();
+  }
+  const sub = SUB_APPS.find((p) => urlPath.startsWith(p + '/'));
+  if (sub) {
+    if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');
+    if (!fs.existsSync(file)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      return res.end('Not found');
+    }
+  }
   if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(DIST, 'index.html');
   if (!fs.existsSync(file)) {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });

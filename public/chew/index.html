@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>Thỏ Nhai Nhảy Mây</title>
+    <script type="module" crossorigin src="./assets/index-CtRy-eFq.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-910Yto1e.css">
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+
+    <div id="hud" class="hidden">
+      <div class="top">
+        <button id="btn-settings" class="hold small" aria-label="Cài đặt"><span class="fill"></span>⚙️</button>
+        <div class="stat"><span id="height">0</span> m</div>
+        <div class="stat">⭐ <span id="stars">0</span></div>
+        <button id="btn-end" class="hold small end"><span class="fill"></span>Hết cơm</button>
+      </div>
+      <div id="chews"></div>
+      <div id="bubble" class="hidden"></div>
+      <div id="cam-wrap"><video id="cam" playsinline muted></video><div id="cam-state"></div></div>
+      <canvas id="debug" class="hidden"></canvas>
+      <div id="rec" class="hidden">
+        <span id="rec-dot">● REC</span>
+        <button id="rec-bite">🥄 Miếng mới</button>
+        <button id="rec-swallow">✓ Bé nuốt</button>
+      </div>
+      <div id="sim" class="hidden">
+        <button data-k="chew">Nhai (Space)</button>
+        <button data-k="bite">Há miệng (B)</button>
+        <button data-k="swallow">Nuốt (S)</button>
+        <button data-k="hand">Tay (H)</button>
+        <button data-k="face">Mặt (F)</button>
+      </div>
+    </div>
+
+    <div id="screen-start" class="screen">
+      <h1>Thỏ Nhai<br />Nhảy Mây</h1>
+      <p class="sub">Nhai thật đều để thỏ nhảy lên mây!</p>
+      <div class="seg" id="mode">
+        <button data-mode="self">Bé tự xúc</button>
+        <button data-mode="parent">Bố mẹ đút</button>
+      </div>
+      <div class="seg" id="food">
+        <button data-food="rice">🍚 Cơm</button>
+        <button data-food="fruit">🍎 Hoa quả</button>
+      </div>
+      <button id="btn-start" class="big">Bắt đầu ăn 🍚</button>
+      <p class="best" id="best"></p>
+      <button id="btn-settings2" class="link">Cài đặt cho bố mẹ</button>
+      <p id="status" class="status"></p>
+    </div>
+
+    <div id="screen-calib" class="screen hidden">
+      <h2>Con nhìn vào camera<br />và ngậm miệng nhé</h2>
+      <div id="calib-cam"></div>
+      <div class="bar"><div id="calib-bar"></div></div>
+      <p id="calib-msg" class="status"></p>
+      <button id="btn-calib-skip" class="link">Bỏ qua</button>
+    </div>
+
+    <div id="screen-end" class="screen hidden">
+      <h1>Hết cơm rồi!</h1>
+      <p class="sub">Con giỏi quá 🎉</p>
+      <div class="result">
+        <div><b id="end-stars">0</b><span>ngôi sao</span></div>
+        <div><b id="end-bites">0</b><span>miếng</span></div>
+        <div><b id="end-height">0</b><span>mét</span></div>
+      </div>
+      <p class="best" id="end-best"></p>
+      <p class="status" id="end-rec"></p>
+      <button id="btn-again" class="big">Ăn bữa mới</button>
+    </div>
+
+    <div id="settings" class="modal hidden">
+      <div class="panel">
+        <h2>Cài đặt cho bố mẹ</h2>
+        <label>Nhai mỗi miếng cơm: <b id="v-chews"></b>
+          <input type="range" id="s-chews" min="4" max="40" step="1" /></label>
+        <label>Nhai mỗi miếng hoa quả: <b id="v-fruit"></b>
+          <input type="range" id="s-fruit" min="3" max="30" step="1" /></label>
+        <label>Nghỉ sau khi nuốt (giây): <b id="v-rest"></b>
+          <input type="range" id="s-rest" min="3" max="40" step="1" /></label>
+        <label>Ngậm bao lâu thì tụt (giây): <b id="v-hold"></b>
+          <input type="range" id="s-hold" min="2" max="8" step="0.5" /></label>
+        <label>Độ nhạy nhai: <b id="v-sens"></b>
+          <input type="range" id="s-sens" min="0.5" max="2" step="0.1" /></label>
+        <label class="row"><input type="checkbox" id="s-voice" /> Giọng nói nhắc bé</label>
+        <label class="row"><input type="checkbox" id="s-record" /> Ghi dữ liệu bữa ăn (bấm "Bé nuốt" mỗi lần thấy bé nuốt)</label>
+        <label class="row"><input type="checkbox" id="s-debug" /> Hiện biểu đồ nhận diện (để chỉnh)</label>
+        <div class="row-btns">
+          <button id="btn-recalib">Đo lại khuôn mặt</button>
+          <button id="btn-close" class="primary">Xong</button>
+        </div>
+        <p class="hint">Mẹo: đặt máy ngang tầm mặt bé, đủ sáng, cách 40–60 cm. Nút ⚙️ và "Hết cơm" phải giữ 1 giây.</p>
+      </div>
+    </div>
+
+  </body>
+</html>
