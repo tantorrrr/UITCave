@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>Thỏ Nhai Nhảy Mây</title>
-    <script type="module" crossorigin src="./assets/index-Bd9QXzzW.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-CWXXkaxB.css">
+    <script type="module" crossorigin src="./assets/index-I9qGatzM.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-7cVnu7hI.css">
   </head>
   <body>
     <canvas id="game"></canvas>
@@ -18,6 +18,15 @@
         <button id="btn-end" class="small end">Hết cơm</button>
       </div>
       <div id="chews"></div>
+      <div id="pad-side">
+        <button id="btn-pad" class="small" aria-label="Điều khiển bằng nút">🎮</button>
+        <div id="coins" class="stat hidden">🪙 <span id="coin-n">0</span></div>
+      </div>
+      <div id="pad" class="hidden">
+        <button id="pad-left" aria-label="Sang trái">◀</button>
+        <button id="pad-jump" aria-label="Nhảy">⬆</button>
+        <button id="pad-right" aria-label="Sang phải">▶</button>
+      </div>
       <div id="bubble" class="hidden"></div>
       <div id="cam-wrap"><video id="cam" playsinline muted></video><div id="cam-state"></div></div>
       <canvas id="debug" class="hidden"></canvas>
@@ -32,6 +41,8 @@
         <button data-k="swallow">Nuốt (S)</button>
         <button data-k="hand">Tay (H)</button>
         <button data-k="face">Mặt (F)</button>
+        <button data-k="tiltL">Nghiêng trái (Q)</button>
+        <button data-k="tiltR">Nghiêng phải (E)</button>
       </div>
     </div>
 
